@@ -47,3 +47,12 @@ The owner reported testing the subsystems below on the ESP32-S3-N16R8 and observ
 $cli = "$env:LOCALAPPDATA\Programs\Arduino IDE\resources\app\lib\backend\resources\arduino-cli.exe"
 & $cli compile --fqbn "esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=huge_app,PSRAM=opi,CPUFreq=240,FlashMode=qio" .
 ```
+
+
+## 4. Companion and panel verification
+
+- ESP32-S3 firmware built with the pinned Arduino core and LovyanGFX.
+- Android debug APK built for Android 13 and later. Android lint completed with zero errors.
+- Gregorian weekday calculations matched the first day of all 1,200 months from 2000 to 2099.
+- The ten city rules matched reference time-zone offsets at every hour of 2026.
+- The owner-reported hardware matrix above applies to the earlier firmware. Pairing, locked-screen delivery, media actions, map dragging, provider quotes, and photo playback in this feature build still need a device run.

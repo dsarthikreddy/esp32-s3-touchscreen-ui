@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">cuteOS Companion</string>
+    <string name="pairing_help">Open Phone on the display and tap Pair. Connect here, then enter the six-digit code shown on the display. Enable notification access to share notifications and control media.</string>
+</resources>

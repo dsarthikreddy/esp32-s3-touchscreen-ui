@@ -6,7 +6,7 @@
 
 480 × 320 landscape · ILI9488 display · XPT2046 resistive touch · Arduino + LovyanGFX
 
-[Open the firmware](cuteOS.ino) · [Wire the display](#1-wire-the-display-and-touch) · [Build and upload](#2-build-and-upload) · [Troubleshoot](#troubleshooting)
+[Open the firmware](cuteOS.ino) · [Wire the display](#1-wire-the-display-and-touch) · [Build and upload](#2-build-and-upload) · [Pair Android](companion/README.md) · [Troubleshoot](#troubleshooting)
 
 </div>
 
@@ -47,7 +47,7 @@ git clone https://github.com/dsarthikreddy/esp32-s3-touchscreen-ui.git cuteOS
 cd cuteOS
 ```
 
-You can also use **Code → Download ZIP**, extract it, and rename the extracted folder to `cuteOS`. Keep both [cuteOS.ino](cuteOS.ino) and [secrets.example.h](secrets.example.h) in that folder. For manual copying, open each file on GitHub and use **Raw** to get the complete text.
+You can also use **Code → Download ZIP**, extract it, and rename the extracted folder to `cuteOS`. Keep the complete sketch folder together. It includes [cuteOS.ino](cuteOS.ino), [secrets.example.h](secrets.example.h), and the firmware headers used by the sketch.
 
 ### Arduino IDE
 
@@ -96,7 +96,7 @@ arduino-cli upload --port COM3 --fqbn esp32:esp32:esp32s3:FlashSize=16M,Partitio
 
 ### Enable live content
 
-Copy [secrets.example.h](secrets.example.h) to `secrets.h` beside the sketch. Set your **2.4 GHz Wi-Fi** network name and password, latitude and longitude in decimal degrees, location labels, and UTC offset in seconds. Upload again to apply the settings. Git ignores `secrets.h`.
+Copy [secrets.example.h](secrets.example.h) to `secrets.h` beside the sketch. Set your **2.4 GHz Wi-Fi** network name and password, latitude and longitude in decimal degrees, location labels, and UTC offset in seconds. For Hyderabad, set `SECRET_NTP_OFFSET_SEC` to `19800`. Upload again to apply the settings. Git ignores `secrets.h`.
 
 The example configuration is enough to compile and try the local interface. Live news, maps, weather, and time sync need Wi-Fi.
 
@@ -104,12 +104,19 @@ The example configuration is enough to compile and try the local interface. Live
 
 | From Home | Opens |
 |---|---|
-| Swipe right | Live news |
-| Swipe left | Device tiles and notifications |
+| Swipe right | News → Phone notifications and battery → Markets |
+| Swipe left | Music → Device tiles → World Clock |
 | Swipe down | Control Center and brightness |
-| Swipe up | App drawer with RF radar, oscilloscope, RGB/GPIO controls, calculator, and focus timer |
+| Swipe up | App drawer with Map, Calendar, Photos, Phone, and device tools |
 | Tap the top pill | Wi-Fi, weather or timer status, and shortcuts |
 | Tap **+ Widgets** | Choose the two Home widgets |
+
+### Phone, map, calendar, and photos
+
+- **Phone and music** use the [Android companion app](companion/README.md) for pairing, phone notifications, battery, and media controls.
+- **Map** opens at the configured location. Tap **Hyderabad** to jump to the city and drag the map at zoom level 17. Nearby tiles are cached in PSRAM.
+- **Calendar** shows the synced date and time. Single arrows change month and double arrows change year through 2099. **World Clock** uses the same internet time source for ten cities.
+- **Photos** reads JPEGs from `/photos` in LittleFS. It decodes the selected image directly from flash and keeps only the file list. See [photo setup](PHOTO_LIBRARY.md).
 
 ## Troubleshooting
 

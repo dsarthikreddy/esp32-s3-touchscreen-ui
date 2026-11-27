@@ -1,0 +1,19 @@
+plugins {
+    id 'com.android.application' version '8.9.2'
+}
+android {
+    namespace 'dev.cuteos.companion'
+    compileSdk 35
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    defaultConfig {
+        applicationId 'dev.cuteos.companion'
+        minSdk 33
+        targetSdk 35
+        versionCode 1
+        versionName '0.1'
+    }
+}

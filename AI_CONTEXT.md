@@ -15,7 +15,9 @@
 ---
 
 ## 2. Repository Files
-- `cuteOS.ino` — Entire firmware source (15 numbered sections, ~2,240 lines)
+- `cuteOS.ino` — Firmware entry point, pin configuration, navigation, and shared rendering
+- `PhoneLink.h`, `PhonePanels.h`, `MarketPanels.h`, `AtlasPanels.h` — BLE transport and feature panels
+- `companion/` — Android app for the BLE link and market-data requests
 - `secrets.example.h` — Sanitized template for Wi-Fi SSID/password, home lat/lon, and region labels
 - `secrets.h` — **Gitignored** local configuration (must exist locally for user's Wi-Fi/location; falls back to `secrets.example.h` via `__has_include` if missing)
 - `.gitignore` — Excludes `secrets.h`, `.env`, keys, biometric/private files, and build outputs

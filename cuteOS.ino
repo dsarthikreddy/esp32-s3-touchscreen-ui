@@ -8,6 +8,7 @@
  *             Calculator, Focus Timer, Dynamic Island, Customizable Widgets, Saved Touch Calibration
  */
 
+#include <LittleFS.h>
 #include <LovyanGFX.hpp>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
@@ -15,6 +16,7 @@
 #include <Preferences.h>
 #include <time.h>
 #include <math.h>
+#include "PhoneLink.h"
 
 #if __has_include("secrets.h")
   #include "secrets.h"
@@ -188,6 +190,12 @@ const uint16_t C_TINT_VIOLET = 0xF75F;
 #define APP_RGB      11
 #define APP_CALC     12
 #define APP_TIMER    13
+#define SCR_PHONE    14
+#define SCR_MUSIC    15
+#define SCR_WORLD    16
+#define APP_CALENDAR 17
+#define APP_PHOTOS   18
+#define SCR_MARKETS  19
 
 #define W_WEATHER    0
 #define W_MINIMAP    1
@@ -801,39 +809,81 @@ void buildOfflineAreaMap() {
   mapSprite.drawString(SECRET_MAP_ROAD_3, 125, 126);
 }
 
+constexpr int MAP_ZOOM = 17;
+constexpr int MAP_TILE = 256;
+constexpr int MAP_WORLD = MAP_TILE * (1 << MAP_ZOOM);
+constexpr size_t MAP_CACHE_SIZE = 10;
+struct MapTile {
+  int x, y;
+  bool satellite;
+  uint8_t* data;
+  size_t length;
+  uint32_t used;
+};
+MapTile mapCache[MAP_CACHE_SIZE]{};
+uint32_t tileAccess = 0;
+int mapCenterX = -1, mapCenterY = -1;
+bool draggingMap = false;
+int lastMapPreviewX = 0, lastMapPreviewY = 0;
+unsigned long lastMapPreview = 0;
+
+void centerMap(double latitude, double longitude) {
+  double latRad = constrain(latitude, -85.05, 85.05) * M_PI / 180.0;
+  mapCenterX = (int)((longitude + 180.0) * MAP_WORLD / 360.0);
+  mapCenterY = (int)((1.0 - asinh(tan(latRad)) / M_PI) * MAP_WORLD / 2);
+}
+
+bool paintMapTile(int tileX, int tileY, int x, int y, bool satellite) {
+  MapTile* slot = &mapCache[0];
+  for (auto& tile : mapCache) {
+    if (tile.data && tile.x == tileX && tile.y == tileY && tile.satellite == satellite) {
+      tile.used = ++tileAccess;
+      return satellite ? mapSprite.drawJpg(tile.data, tile.length, x, y)
+                       : mapSprite.drawPng(tile.data, tile.length, x, y);
+    }
+    if (!tile.data || (slot->data && tile.used < slot->used)) slot = &tile;
+  }
+  uint8_t* data = nullptr;
+  size_t length = 0;
+  String prefix = satellite
+    ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/17/"
+    : "https://tile.openstreetmap.org/17/";
+  String url = satellite ? prefix + tileY + "/" + tileX : prefix + tileX + "/" + tileY + ".png";
+  if (!downloadBufferHTTPS(url, &data, &length, 120000)) return false;
+  bool decoded = satellite ? mapSprite.drawJpg(data, length, x, y)
+                           : mapSprite.drawPng(data, length, x, y);
+  if (!decoded) {
+    free(data);
+    return false;
+  }
+  free(slot->data);
+  *slot = {tileX, tileY, satellite, data, length, ++tileAccess};
+  return true;
+}
+
 bool downloadAreaRealMap(bool useSatellite) {
+  mapLoaded = false;
+  mapSatellite = useSatellite;
+  if (mapCenterX < 0) {
+    if (HOME_LAT == 0.0 && HOME_LON == 0.0) centerMap(17.3850, 78.4867);
+    else centerMap(HOME_LAT, HOME_LON);
+  }
   if (WiFi.status() != WL_CONNECTED) { buildOfflineAreaMap(); return false; }
-
-  const int Z = 17; // Tight Zoom 17: Local estate & immediate surrounding lanes
-  double n = (double)(1UL << Z);
-  double latRad = HOME_LAT * M_PI / 180.0;
-  double xf = (HOME_LON + 180.0) / 360.0 * n;
-  double yf = (1.0 - log(tan(latRad) + 1.0 / cos(latRad)) / M_PI) / 2.0 * n;
-  int cx = (int)floor(xf), cy = (int)floor(yf);
-  int px = (int)((xf - (double)cx) * 256.0), py = (int)((yf - (double)cy) * 256.0);
-
+  int left = mapCenterX - 240;
+  int top = mapCenterY - 160;
+  int firstX = (int)floor((double)left / MAP_TILE);
+  int firstY = (int)floor((double)top / MAP_TILE);
+  int tilesPerSide = 1 << MAP_ZOOM;
   mapSprite.fillScreen(makeRgb(236, 240, 246));
   int okTiles = 0;
-  for (int dy = -1; dy <= 1; dy++) {
-    for (int dx = -1; dx <= 1; dx++) {
-      int drawX = 240 - px + dx * 256, drawY = 160 - py + dy * 256;
-      if (drawX + 256 <= 0 || drawX >= 480 || drawY + 256 <= 0 || drawY >= 320) continue;
-      int tx = cx + dx, ty = cy + dy;
-      String url = useSatellite
-        ? (String("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/") + String(Z) + "/" + String(ty) + "/" + String(tx))
-        : (String("https://tile.openstreetmap.org/") + String(Z) + "/" + String(tx) + "/" + String(ty) + ".png");
-      uint8_t* tBuf = NULL;
-      size_t tLen = 0;
-      if (downloadBufferHTTPS(url, &tBuf, &tLen, 120000)) {
-        bool decoded = useSatellite
-          ? mapSprite.drawJpg(tBuf, (uint32_t)tLen, drawX, drawY)
-          : mapSprite.drawPng(tBuf, (uint32_t)tLen, drawX, drawY);
-        free(tBuf);
-        if (decoded) okTiles++;
-      }
+  for (int row = firstY; row * MAP_TILE < top + 320; ++row) {
+    if (row < 0 || row >= tilesPerSide) continue;
+    for (int col = firstX; col * MAP_TILE < left + 480; ++col) {
+      int wrapped = (col % tilesPerSide + tilesPerSide) % tilesPerSide;
+      if (paintMapTile(wrapped, row, col * MAP_TILE - left, row * MAP_TILE - top, useSatellite)) ++okTiles;
     }
   }
-  if (okTiles > 0) { mapLoaded = true; mapSatellite = useSatellite; return true; }
+  if (okTiles) { mapLoaded = true; return true; }
   buildOfflineAreaMap();
   return false;
 }
@@ -1368,23 +1418,31 @@ void drawControlScreen() {
 void drawAppsScreen() {
   drawSubHeader("cuteOS APPS", "< Home", "+ Widgets", C_VIOLET);
   drawFrostGlassCard(12, 42, 456, 268, 26, false, C_WHITE);
-  const char* names[8] = {"Live News", "Estate Map", "Weather", "RF Radar", "Scope", "RGB & IO", "Calculator", "Timer"};
-  for (int i = 0; i < 8; i++) {
-    int cx = 74 + (i % 4) * 111, cy = 100 + (i / 4) * 128;
+  const char* names[] = {"Live News", "Map", "Weather", "RF Radar", "Scope", "RGB & IO",
+                         "Calculator", "Timer", "Calendar", "Photos", "Phone", "World Clock"};
+  const char* symbols[] = {"CAL", "JPG", "BLE", "UTC"};
+  for (int i = 0; i < 12; ++i) {
+    int cx = 74 + (i % 4) * 111, cy = 75 + (i / 4) * 86;
     switch (i) {
-      case 0: drawIconNews(cx, cy, 62); break;
-      case 1: drawIconMap(cx, cy, 62); break;
-      case 2: drawIconWeather(cx, cy, 62); break;
-      case 3: drawIconRadar(cx, cy, 62); break;
-      case 4: drawIconScope(cx, cy, 62); break;
-      case 5: drawIconRGB(cx, cy, 62); break;
-      case 6: drawIconCalc(cx, cy, 62); break;
-      case 7: drawIconTimer(cx, cy, 62); break;
+      case 0: drawIconNews(cx, cy, 46); break;
+      case 1: drawIconMap(cx, cy, 46); break;
+      case 2: drawIconWeather(cx, cy, 46); break;
+      case 3: drawIconRadar(cx, cy, 46); break;
+      case 4: drawIconScope(cx, cy, 46); break;
+      case 5: drawIconRGB(cx, cy, 46); break;
+      case 6: drawIconCalc(cx, cy, 46); break;
+      case 7: drawIconTimer(cx, cy, 46); break;
+      default:
+        drawAppleSquircle(cx, cy, 46, C_VIOLET, C_BLUE);
+        canvas.setFont(&fonts::FreeSerifBold9pt7b);
+        canvas.setTextDatum(lgfx::middle_center);
+        canvas.setTextColor(C_WHITE);
+        canvas.drawString(symbols[i - 8], cx, cy);
     }
     canvas.setFont(&fonts::FreeSerifBold9pt7b);
     canvas.setTextDatum(lgfx::middle_center);
     canvas.setTextColor(C_INK);
-    canvas.drawString(names[i], cx, cy + 46);
+    canvas.drawString(names[i], cx, cy + 34);
   }
 }
 
@@ -1487,26 +1545,31 @@ void drawWidgetsScreen() {
 }
 
 void drawAppMap() {
-  mapSprite.pushSprite(&canvas, 0, 0);
-  int cx = 240, cy = 160;
-  canvas.fillCircle(cx, cy, 18, blend565(C_BLUE, C_WHITE, 120));
-  canvas.fillTriangle(cx - 8, cy - 2, cx + 8, cy - 2, cx, cy + 12, C_RED);
-  canvas.fillCircle(cx, cy - 6, 9, C_RED);
-  canvas.fillCircle(cx, cy - 6, 4, C_WHITE);
-
-  drawCleanCard(12, 8, 88, 30, 15, C_WHITE, C_BORDER);
+  canvas.fillScreen(C_SOFT_GRAY);
+  mapSprite.pushSprite(&canvas, draggingMap ? lastMapPreviewX : 0,
+                       draggingMap ? lastMapPreviewY : 0);
+  // Rounded glass controls with the map visible through the tint.
+  const int starts[] = {12, 179, 354};
+  const int widths[] = {88, 122, 114};
+  const char* labels[] = {"< Home", "Hyderabad", mapSatellite ? "Street View" : "Satellite"};
   canvas.setFont(&fonts::FreeSerifBold9pt7b);
-  canvas.setTextDatum(lgfx::middle_center); canvas.setTextColor(C_INK); canvas.drawString("< Home", 56, 23);
-
-  drawCleanCard(354, 8, 114, 30, 15, mapSatellite ? C_GREEN : C_BLUE, C_WHITE);
-  canvas.setTextColor(C_WHITE); canvas.drawString(mapSatellite ? "Street View" : "Satellite", 411, 23);
-
-  drawCleanCard(14, 258, 452, 52, 22, C_WHITE, C_BORDER);
-  canvas.fillCircle(42, 284, 14, C_TINT_ROSE);
-  canvas.fillCircle(42, 284, 6, C_RED);
-  canvas.setFont(&fonts::FreeSerifBold12pt7b);
-  canvas.setTextDatum(lgfx::middle_left); canvas.setTextColor(C_INK); canvas.drawString(AREA_NAME, 66, 274);
-  canvas.setFont(&fonts::FreeSerif9pt7b); canvas.setTextColor(C_INK_SUB); canvas.drawString(SECRET_MAP_SUBTITLE, 66, 296);
+  canvas.setTextDatum(lgfx::middle_center);
+  for (int i = 0; i < 3; ++i) {
+    for (int y = 8; y < 38; ++y) {
+      int dy = abs(y - 23);
+      int inset = dy < 14 ? 14 - (int)sqrtf(196 - dy * dy) : 14;
+      for (int x = starts[i] + inset; x < starts[i] + widths[i] - inset; ++x) {
+        canvas.drawPixel(x, y, blend565(C_DARK_PILL, canvas.readPixel(x, y), 180));
+      }
+    }
+    canvas.drawRoundRect(starts[i], 8, widths[i], 30, 14, C_WHITE);
+    canvas.setTextColor(C_WHITE);
+    canvas.drawString(labels[i], starts[i] + widths[i] / 2, 23);
+  }
+  drawCleanCard(13, 279, 454, 28, 14, C_DARK_PILL, C_WHITE);
+  canvas.setTextColor(C_WHITE);
+  canvas.drawString(!mapLoaded ? "Offline map" : (mapSatellite ? "Esri / Maxar / Earthstar Geographics" :
+                    "Map data: OpenStreetMap contributors"), 240, 293);
 }
 
 void drawAppWeather() {
@@ -1748,6 +1811,10 @@ void runRFSpectrumScan() {
   uiDirty = true;
 }
 
+#include "PhonePanels.h"
+#include "AtlasPanels.h"
+#include "MarketPanels.h"
+
 void renderCurrentScreen(bool pushNow) {
   if (currentScreen != APP_MAP) bgSprite.pushSprite(&canvas, 0, 0);
   switch (currentScreen) {
@@ -1765,6 +1832,12 @@ void renderCurrentScreen(bool pushNow) {
     case APP_RGB:     drawAppRGB();            break;
     case APP_CALC:    drawAppCalc();           break;
     case APP_TIMER:   drawAppTimer();          break;
+    case SCR_PHONE:   drawPhonePanel();        break;
+    case SCR_MUSIC:   drawMusicPanel();        break;
+    case SCR_WORLD:   drawWorldClockPanel();   break;
+    case APP_CALENDAR: drawCalendarPanel();   break;
+    case APP_PHOTOS:   drawPhotosPanel();     break;
+    case SCR_MARKETS:  drawMarketsPanel();    break;
   }
   drawToastOverlay();
   if (pushNow) pushFullFrame();
@@ -1773,6 +1846,7 @@ void renderCurrentScreen(bool pushNow) {
 
 void switchScreen(int next) {
   currentScreen = next;
+  if (next == SCR_MARKETS) loadMarketPage();
   islandExpanded = false;
   renderCurrentScreen(true);
 }
@@ -1898,6 +1972,62 @@ void handleTap(int x, int y) {
     return;
   }
 
+  if (currentScreen == SCR_MARKETS) {
+    if (inRect(x, y, 6, 2, 104, 38)) { switchScreen(SCR_HOME); return; }
+    if (inRect(x, y, 366, 2, 108, 38)) loadMarketPage();
+    else if (inRect(x, y, 14, 46, 152, 30)) {
+      stockMarkets = !stockMarkets;
+      marketPage = 0;
+      loadMarketPage();
+    } else if (y >= 280 && (x < 100 || x > 380)) {
+      marketPage = constrain(marketPage + (x < 100 ? -1 : 1), 0, stockMarkets ? 14 : 24);
+      loadMarketPage();
+    }
+    return;
+  }
+
+  if (currentScreen == SCR_WORLD || currentScreen == APP_CALENDAR || currentScreen == APP_PHOTOS) {
+    if (inRect(x, y, 6, 2, 104, 38)) {
+      switchScreen(currentScreen == SCR_WORLD ? SCR_HOME : SCR_APPS);
+      return;
+    }
+    if (inRect(x, y, 366, 2, 108, 38)) {
+      if (currentScreen == SCR_WORLD) switchScreen(APP_CALENDAR);
+      else if (currentScreen == APP_CALENDAR) calendarOffset = 0;
+      else scanPhotos();
+      uiDirty = true;
+    } else if (currentScreen == APP_CALENDAR && y >= 48 && y < 91) {
+      if (x < 112 || x > 368) {
+        int step = (x < 59 || x > 421) ? 12 : 1;
+        moveCalendar(x < 112 ? -step : step);
+      }
+    } else if (currentScreen == APP_PHOTOS && y >= 259 && photoCount) {
+      if (x < 96 || x > 384) {
+        photoIndex = (photoIndex + photoCount + (x < 96 ? -1 : 1)) % photoCount;
+        uiDirty = true;
+      }
+    }
+    return;
+  }
+
+  if (currentScreen == SCR_PHONE || currentScreen == SCR_MUSIC) {
+    if (inRect(x, y, 6, 2, 104, 38)) { switchScreen(SCR_HOME); return; }
+    if (inRect(x, y, 366, 2, 108, 38)) {
+      if (currentScreen == SCR_MUSIC) switchScreen(SCR_PHONE);
+      else if (PhoneLink::start()) {
+        PhoneLink::showPairingCode();
+        passkeyPanelVisible = true;
+        uiDirty = true;
+      } else showToast("Bluetooth initialization failed", 1800);
+      return;
+    }
+    if (currentScreen == SCR_MUSIC && x >= 14 && x < 466 && y >= 156 && y < 300) {
+      uint8_t action = 1 + (x - 14) / 152 + (y - 156) / 50 * 3;
+      if (mediaAllowed(action)) xQueueSend(PhoneLink::commands, &action, 0);
+    }
+    return;
+  }
+
   if (currentScreen == SCR_ARTICLE) {
     if (inRect(x, y, 6, 2, 104, 38))   { switchScreen(SCR_NEWS); return; }
     if (inRect(x, y, 366, 2, 108, 38)) { selectedArticle = (selectedArticle + 1) % NUM_NEWS_ITEMS; renderCurrentScreen(true); return; }
@@ -1908,12 +2038,20 @@ void handleTap(int x, int y) {
 
   if (currentScreen == APP_MAP) {
     if (inRect(x, y, 6, 2, 100, 42)) { switchScreen(SCR_HOME); return; }
+    if (inRect(x, y, 179, 2, 122, 42)) {
+      centerMap(17.3850, 78.4867);
+      showToast("Loading Hyderabad...", 1800);
+      renderCurrentScreen(true);
+      downloadAreaRealMap(mapSatellite);
+      uiDirty = true;
+      return;
+    }
     if (inRect(x, y, 348, 2, 128, 42)) {
       bool nextMode = !mapSatellite;
       showToast(nextMode ? "Loading Satellite..." : "Loading Street Map...", 2500);
       renderCurrentScreen(true);
-      downloadAreaRealMap(nextMode);
-      showToast(mapSatellite ? "Satellite Live" : "Street Map Live", 1300);
+      bool loaded = downloadAreaRealMap(nextMode);
+      showToast(loaded ? (mapSatellite ? "Satellite Live" : "Street Map Live") : "Map tiles unavailable", 1300);
       renderCurrentScreen(true);
     }
     return;
@@ -1963,9 +2101,10 @@ void handleTap(int x, int y) {
 
   if (currentScreen == SCR_APPS) {
     if (inRect(x, y, 366, 2, 108, 38)) { switchScreen(SCR_WIDGETS); return; }
-    if (y >= 44) {
-      int idx = ((y < 176) ? 0 : 4) + constrain((x - 16) / 111, 0, 3);
-      int targets[8] = {SCR_NEWS, APP_MAP, APP_WEATHER, APP_RADAR, APP_SCOPE, APP_RGB, APP_CALC, APP_TIMER};
+    if (y >= 44 && y < 302) {
+      int idx = (y - 44) / 86 * 4 + constrain((x - 18) / 111, 0, 3);
+      int targets[] = {SCR_NEWS, APP_MAP, APP_WEATHER, APP_RADAR, APP_SCOPE, APP_RGB,
+                       APP_CALC, APP_TIMER, APP_CALENDAR, APP_PHOTOS, SCR_PHONE, SCR_WORLD};
       switchScreen(targets[idx]);
     }
     return;
@@ -2042,11 +2181,29 @@ void handleSwipe(int dx, int dy) {
   bool horiz = abs(dx) > abs(dy);
   if (currentScreen == SCR_HOME) {
     if (horiz  && dx > 38)  switchScreen(SCR_NEWS);    // Swipe Left -> Right : 5-Tile Live News
-    if (horiz  && dx < -38) switchScreen(SCR_TILES);   // Swipe Right -> Left : 4 Tech Tiles & Notifs
+    if (horiz  && dx < -38) switchScreen(SCR_MUSIC);
     if (!horiz && dy > 38)  switchScreen(SCR_CONTROL); // Swipe Down          : Brightness & Controls
     if (!horiz && dy < -38) switchScreen(SCR_APPS);    // Swipe Up            : Apple Squircle Apps
   } else if (currentScreen == SCR_NEWS) {
-    if (horiz && dx < -38)  switchScreen(SCR_HOME);
+    if (horiz && dx < -38) switchScreen(SCR_HOME);
+    if (horiz && dx > 38) switchScreen(SCR_PHONE);
+  } else if (currentScreen == SCR_PHONE) {
+    if (horiz && dx < -38) switchScreen(SCR_NEWS);
+    if (horiz && dx > 38) switchScreen(SCR_MARKETS);
+  } else if (currentScreen == SCR_MARKETS) {
+    if (horiz && dx < -38) switchScreen(SCR_PHONE);
+  } else if (currentScreen == SCR_MUSIC) {
+    if (horiz && dx > 38) switchScreen(SCR_HOME);
+    if (horiz && dx < -38) { currentTile = 0; switchScreen(SCR_TILES); }
+  } else if (currentScreen == SCR_WORLD) {
+    if (horiz && dx > 38) { currentTile = NUM_TILES - 1; switchScreen(SCR_TILES); }
+  } else if (currentScreen == APP_CALENDAR) {
+    if (horiz) moveCalendar(dx < 0 ? 1 : -1);
+  } else if (currentScreen == APP_PHOTOS) {
+    if (horiz && photoCount) {
+      photoIndex = (photoIndex + photoCount + (dx < 0 ? 1 : -1)) % photoCount;
+      uiDirty = true;
+    }
   } else if (currentScreen == SCR_ARTICLE) {
     if (horiz && dx < -38)  { selectedArticle = (selectedArticle + 1) % NUM_NEWS_ITEMS; renderCurrentScreen(true); }
     if (horiz && dx > 38)   { selectedArticle = (selectedArticle + NUM_NEWS_ITEMS - 1) % NUM_NEWS_ITEMS; renderCurrentScreen(true); }
@@ -2056,8 +2213,13 @@ void handleSwipe(int dx, int dy) {
   } else if (currentScreen == SCR_APPS || currentScreen == SCR_WIDGETS) {
     if (!horiz && dy > 38)  switchScreen(SCR_HOME);
   } else if (currentScreen == SCR_TILES) {
-    if (horiz && dx < -38) { currentTile = (currentTile + 1) % NUM_TILES; renderCurrentScreen(true); }
-    else if (horiz && dx > 38) { if (currentTile > 0) { currentTile--; renderCurrentScreen(true); } else switchScreen(SCR_HOME); }
+    if (horiz && dx < -38) {
+      if (currentTile + 1 == NUM_TILES) switchScreen(SCR_WORLD);
+      else { ++currentTile; renderCurrentScreen(true); }
+    } else if (horiz && dx > 38) {
+      if (currentTile > 0) { --currentTile; renderCurrentScreen(true); }
+      else switchScreen(SCR_MUSIC);
+    }
   } else {
     if (!horiz && dy > 48) switchScreen(SCR_HOME);
   }
@@ -2071,7 +2233,11 @@ void pollTouch() {
       touchActive = true; touchRingDrawn = false; draggingBright = false;
       smoothX = (float)rx; smoothY = (float)ry;
       touchStartX = touchLastX = rx; touchStartY = touchLastY = ry;
-      if (currentScreen == SCR_CONTROL && inRect(rx, ry, 14, 42, 452, 50)) draggingBright = true;
+      if (currentScreen == APP_MAP && ry > 42 && ry < 279 &&
+          (mapLoaded || WiFi.status() == WL_CONNECTED) && mapCenterX >= 0) {
+        draggingMap = true;
+        lastMapPreviewX = lastMapPreviewY = 0;
+      } else if (currentScreen == SCR_CONTROL && inRect(rx, ry, 14, 42, 452, 50)) draggingBright = true;
       else { tft.drawCircle(rx, ry, 9, C_CYAN); touchRingDrawn = true; }
     } else {
       smoothX = smoothX * 0.4f + (float)rx * 0.6f;
@@ -2082,9 +2248,26 @@ void pollTouch() {
         if (abs(nb - screenBrightness) >= 3) { screenBrightness = nb; applyHardwarePWM(); renderCurrentScreen(true); }
       }
       touchLastX = ix; touchLastY = iy;
+      if (draggingMap && millis() - lastMapPreview >= 65) {
+        lastMapPreview = millis();
+        lastMapPreviewX = ix - touchStartX;
+        lastMapPreviewY = iy - touchStartY;
+        renderCurrentScreen(true);
+      }
     }
   } else if (touchActive && (millis() - lastTouchSeen > 18)) {
     touchActive = false;
+    if (draggingMap) {
+      draggingMap = false;
+      int dx = touchLastX - touchStartX, dy = touchLastY - touchStartY;
+      if (abs(dx) >= 12 || abs(dy) >= 12) {
+        mapCenterX = (mapCenterX - dx + MAP_WORLD) % MAP_WORLD;
+        mapCenterY = constrain(mapCenterY - dy, 0, MAP_WORLD - 1);
+        downloadAreaRealMap(mapSatellite);
+      }
+      uiDirty = true;
+      return;
+    }
     if (draggingBright) {
       draggingBright = false;
       prefs.begin("cuteos", false); prefs.putInt("bri", screenBrightness); prefs.end();
@@ -2115,6 +2298,7 @@ void setup() {
   screenBrightness = constrain(prefs.getInt("bri", 100), 20, 100);
   homeSlot[0]      = prefs.getInt("w0", W_WEATHER);
   homeSlot[1]      = prefs.getInt("w1", W_MINIMAP);
+  resumePhoneLink  = prefs.getBool("phone", false);
   uint16_t savedCal[8];
   bool hasCal      = (prefs.getBytesLength("cal") == sizeof(savedCal));
   if (hasCal) prefs.getBytes("cal", savedCal, sizeof(savedCal));
@@ -2192,9 +2376,15 @@ void setup() {
   delay(220);
   pushNotif("cuteOS", "Swipe Left -> Right", "Open 5 Live News Tiles with Photos", C_ROSE);
   renderCurrentScreen(true);
+  if (resumePhoneLink) PhoneLink::start();
 }
 
 void loop() {
+  consumePhoneFrames();
+  if (passkeyPanelVisible && (int32_t)(PhoneLink::showKeyUntil - millis()) <= 0) {
+    passkeyPanelVisible = false;
+    if (currentScreen == SCR_PHONE) uiDirty = true;
+  }
   pollTouch();
 
   if (currentScreen == APP_SCOPE && !scopePaused && millis() - lastScopeTick >= 55) {
@@ -2243,6 +2433,11 @@ void loop() {
     if (millis() - lastWeatherFetch > 900000UL) fetchLocalWeather();
   }
 
+  static time_t lastPanelTime;
+  if (currentScreen == SCR_WORLD || currentScreen == APP_CALENDAR) {
+    time_t now = time(nullptr);
+    if (now != lastPanelTime) { lastPanelTime = now; uiDirty = true; }
+  }
   if (uiDirty && !touchActive) renderCurrentScreen(true);
   delay(2);
 }

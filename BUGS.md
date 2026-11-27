@@ -33,7 +33,7 @@ All items below were identified through static inspection of [cuteOS.ino](cuteOS
 9. **`boot` vs `Control Center` `Wi-Fi` Tile Does Not Update `mapLoaded` / `newsLoaded`:**
    - If the device boots offline and the user later reconnects via **Control Center -> Wi-Fi**, it syncs NTP and Weather, but does not automatically fetch Everest wallpaper, Map tiles, or Live News (user must tap `Everest BG`, `Map`, or `News -> Refresh`).
 10. **Map Tile Download Uses Sequential HTTPS Connections (`downloadAreaRealMap`):**
-    - Fetches up to 9 separate tiles (`3x3`) sequentially over fresh TLS handshakes; on slower Wi-Fi this can take several seconds and occasionally hit the 6.5 s timeout on individual tiles, leaving partial background rectangles if one tile fails.
+    - Fetches uncached tiles sequentially over fresh TLS handshakes; on slower Wi-Fi this can take several seconds and occasionally hit the 6.5 s timeout on individual tiles, leaving partial background rectangles if one tile fails.
 
 ---
 
