@@ -2,12 +2,24 @@
 
 The companion app bridges a Pixel 9 or another Android 13+ phone to cuteOS over Bluetooth Low Energy. Build or install the APK, then flash the matching firmware from [the repository root](../README.md#2-build-and-upload).
 
-## Install and pair
+## Install on your Pixel
 
-1. Download the **cuteOS-Companion-APK** artifact from a successful [Android companion build](https://github.com/dsarthikreddy/esp32-s3-touchscreen-ui/actions/workflows/companion-build.yml), extract it, and install `app-debug.apk` on your phone. Android may ask you to allow APK installation from the app opening the file.
-2. On cuteOS, open **Phone** from the app drawer or swipe right from Home through News. Tap **Pair** to show the six-digit passkey.
-3. In the phone app, tap **Connect to cuteOS**, allow **Nearby devices**, and enter the passkey shown on cuteOS in Android's pairing prompt.
-4. Tap **Notification access** in the phone app and enable **cuteOS Companion** in Android. If Android blocks this for the sideloaded APK, open the app's details in **Settings → Apps**, choose **Allow restricted settings** from the overflow menu, and try again.
+### Android Studio
+
+1. Extract **`cuteOS.zip`** from the [latest release](https://github.com/dsarthikreddy/esp32-s3-touchscreen-ui/releases/latest). In Android Studio, click **Open** and select **`cuteOS/companion`**, the folder with `settings.gradle` and `app/`. Wait for **Gradle Sync**. If Studio offers to install a missing Android SDK, click **Install**.
+2. On the Pixel, open **Settings → About phone**, tap **Build number** seven times, and enter your PIN if asked. Go back to **Settings → System → Developer options** and turn on **USB debugging**.
+3. Plug the unlocked Pixel into the computer with a USB data cable. Tap **Allow** on the phone's USB debugging prompt. In Android Studio's top bar, select **Google Pixel 9** and **app**, then click the green **▶ Run** button. Wait for **cuteOS Companion** to open on the phone.
+4. If you previously installed the app using this Android Studio setup, use **▶ Run** again to update it.
+
+### APK download
+
+The release includes **`cuteOS-companion.apk`**, a debug build for testing. Use Android Studio if the Pixel blocks the downloaded APK or if you already use an Android Studio build. Keep Play Protect enabled.
+
+## Pair the display
+
+1. On the ESP32 display, swipe up from Home, tap **Phone**, then tap **Pair** to show the six-digit code.
+2. Turn on Bluetooth on the Pixel. In the phone app, tap **Connect to cuteOS**, allow **Nearby devices**, and enter the displayed code in Android's pairing prompt.
+3. Check the display's **Phone** screen for your Pixel's battery percentage. When you see it, the devices are connected.
 
 Keep the companion's foreground connection service running for battery updates and notification delivery while the phone is idle. Opening the app and tapping **Connect to cuteOS** starts it again after a phone reboot. The display keeps a short list of notifications in memory and clears it when the phone disconnects. Android may redact sensitive notifications. You can stop the link with **Disconnect** or turn off notification access in Android Settings.
 
@@ -16,7 +28,7 @@ On the display, swipe left from Home for **Music**. Play/pause, next/previous, �
 ## Test notifications
 
 1. Connect to the display and open its **Phone** panel. Check that the phone battery percentage is visible.
-2. In the Android app, tap **Notification access** and turn on **cuteOS Companion**.
+2. In the Android app, tap **Notification access**, then select and enable **cuteOS Companion** in Android Settings.
 3. Tap **Send test notification** and allow the app to post notifications if Android asks. **cuteOS test** should appear in the display's **Phone Notifications** list.
 4. Lock the phone and have someone send you a message. Make sure the message produces an Android notification. Check the display again.
 

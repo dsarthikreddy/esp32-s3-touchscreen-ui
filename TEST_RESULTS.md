@@ -55,4 +55,6 @@ $cli = "$env:LOCALAPPDATA\Programs\Arduino IDE\resources\app\lib\backend\resourc
 - Android debug APK built for Android 13 and later. Android lint completed with zero errors.
 - Gregorian weekday calculations matched the first day of all 1,200 months from 2000 to 2099.
 - The ten city rules matched reference time-zone offsets at every hour of 2026.
-- The owner-reported hardware matrix above applies to the earlier firmware. Pairing, locked-screen delivery, media actions, map dragging, provider quotes, and photo playback in this feature build still need a device run.
+- The owner shared photos of the Control Center, a populated Wi-Fi scan, and Pixel track metadata on the ESP32 display. They also reported the revised sketch working after its headers were placed alongside `cuteOS.ino`.
+- The glass update compiled with the documented ESP32-S3 settings. Companion 0.2 built and passed Android lint.
+- Startup timing, locked-screen notification delivery, and artwork availability across media apps require testing on the connected hardware.

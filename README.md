@@ -6,11 +6,17 @@
 
 480 × 320 landscape · ILI9488 display · XPT2046 resistive touch · Arduino + LovyanGFX
 
-[Open the firmware](cuteOS.ino) · [Wire the display](#1-wire-the-display-and-touch) · [Build and upload](#2-build-and-upload) · [Pair Android](companion/README.md) · [Troubleshoot](#troubleshooting)
+[Download cuteOS](https://github.com/dsarthikreddy/esp32-s3-touchscreen-ui/releases/latest) · [Wire the display](#1-wire-the-display-and-touch) · [Build and upload](#2-build-and-upload) · [Pair Android](companion/README.md) · [Use the display](#explore-the-interface)
 
 </div>
 
 ---
+
+## Start here
+
+1. Download **`cuteOS.zip`** and extract it. It contains a ready-to-open **`cuteOS`** folder with the Arduino sketch, headers, and Android project together. [Latest release](https://github.com/dsarthikreddy/esp32-s3-touchscreen-ui/releases/latest)
+2. With the board wired, open **`cuteOS/cuteOS.ino`** in Arduino IDE and upload using the [board settings below](#arduino-ide).
+3. For phone features, open **`cuteOS/companion`** in Android Studio. Run it on your Pixel and pair it with the display. [Android setup](companion/README.md)
 
 ## 1. Wire the display and touch
 
@@ -40,14 +46,14 @@ Disconnect USB power before wiring. Match the **labels printed on your module** 
 
 ### Get the complete sketch
 
-Clone into a folder named `cuteOS` so Arduino can match the folder with `cuteOS.ino`. These commands work in PowerShell, Bash, and Zsh with Git installed.
+On Windows, right-click the downloaded **`cuteOS.zip`**, choose **Extract All**, and open the **`cuteOS`** folder inside. Double-click `cuteOS.ino` from that folder. Arduino uses the matching folder name to find `PhoneLink.h`, the other headers, and `secrets.example.h`.
+
+If you use GitHub's **Code → Download ZIP** instead, rename the extracted folder containing `cuteOS.ino` to **`cuteOS`** before opening the sketch. If you use Git, clone the repository into the correct folder name.
 
 ```sh
 git clone https://github.com/dsarthikreddy/esp32-s3-touchscreen-ui.git cuteOS
 cd cuteOS
 ```
-
-You can also use **Code → Download ZIP**, extract it, and rename the extracted folder to `cuteOS`. Keep the complete sketch folder together. It includes [cuteOS.ino](cuteOS.ino), [secrets.example.h](secrets.example.h), and the firmware headers used by the sketch.
 
 ### Arduino IDE
 
@@ -69,7 +75,7 @@ You can also use **Code → Download ZIP**, extract it, and rename the extracted
    | Flash Mode | QIO 80MHz |
    | CPU Frequency | 240MHz (WiFi) |
 
-4. Select the board's port and click **Verify**, then **Upload**. Follow the touch targets on the first boot to save calibration.
+4. Plug the ESP32 into your computer with a USB data cable. Select its **COM** port under **Tools → Port**. Click the **→ Upload** arrow at the top left. Wait for **Done uploading**, then follow the touch targets if the board asks for calibration.
 
 <details>
 <summary>Build from the command line with Arduino CLI</summary>
@@ -104,8 +110,8 @@ The example configuration is enough to compile and try the local interface. Live
 
 | From Home | Opens |
 |---|---|
-| Swipe right | News → Phone notifications and battery → Markets |
-| Swipe left | Music → Device tiles → World Clock |
+| Swipe right | News. Keep swiping right for Phone notifications, battery, and Markets. |
+| Swipe left | Now Playing. Keep swiping left for device tiles, then World Clock. |
 | Swipe down | Control Center and brightness |
 | Swipe up | App drawer with Map, Calendar, Photos, Phone, and device tools |
 | Tap the top pill | Wi-Fi, weather or timer status, and shortcuts |
@@ -115,6 +121,7 @@ The example configuration is enough to compile and try the local interface. Live
 
 - **Control Center** opens with a swipe down from Home. Tap **Resize**, choose a tile, and drag its marked bottom corner sideways or up and down. Tap **Done** to save the size. Each tile fits within its own space.
 - **Phone and music** use the [Android companion app](companion/README.md) for pairing, phone notifications, battery, and media controls. Music shows artwork when the active Android player shares it.
+- **Wi-Fi Nearby** shows nearby 2.4 GHz networks by channel. Open it from the device tiles and tap the chart to scan. Taller bars indicate stronger signals.
 - **Startup** displays Home before it connects to Wi-Fi. Weather and wallpaper load in the background, and news starts loading when opened. To measure a normal boot, open Arduino IDE's Serial Monitor at **115200 baud** and reset the board. The **Home drawn** and **Touch loop ready** lines report elapsed time. A first boot that needs touch calibration includes time for the user to tap the targets.
 - **Map** opens at the configured location. Tap **Load Map** to retrieve tiles, then **Hyderabad** to jump to the city. Drag at zoom level 17. Nearby tiles are cached in PSRAM.
 - **Calendar** shows the synced date and time. Single arrows change month and double arrows change year through 2099. **World Clock** uses the same internet time source for ten cities.
@@ -128,6 +135,7 @@ The example configuration is enough to compile and try the local interface. Live
 | White screen or no image | Check display power and backlight, then trace `CS`, `RESET`, `DC`, `SDI`, and `SCK`. |
 | Image works but touch fails | Trace all four touch wires: `T_CLK`, `T_CS`, `T_DIN`, and `T_DO`. Then rerun calibration from Control Center. |
 | **ENABLE OPI PSRAM!** | Select **OPI PSRAM** and confirm the board is the N16R8 variant. |
+| `PhoneLink.h: No such file or directory` | Reopen `cuteOS.ino` from the full extracted `cuteOS` folder. Check that `PhoneLink.h`, `PhonePanels.h`, `AtlasPanels.h`, `MarketPanels.h`, and `secrets.example.h` are beside it. |
 | `LovyanGFX.hpp` missing | Install **LovyanGFX 1.3.0** in the IDE or CLI environment compiling the sketch. |
 | Live widgets show fallback content | Check `secrets.h`, 2.4 GHz Wi-Fi, and internet access. |
 
