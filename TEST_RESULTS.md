@@ -57,4 +57,4 @@ $cli = "$env:LOCALAPPDATA\Programs\Arduino IDE\resources\app\lib\backend\resourc
 - The ten city rules matched reference time-zone offsets at every hour of 2026.
 - The owner shared photos of the Control Center, a populated Wi-Fi scan, and Pixel track metadata on the ESP32 display. They also reported the revised sketch working after its headers were placed alongside `cuteOS.ino`.
 - The glass update compiled with the documented ESP32-S3 settings. Companion 0.2 built and passed Android lint.
-- Startup timing, locked-screen notification delivery, and artwork availability across media apps require testing on the connected hardware.
+- **Hardware acceptance passed (owner-reported).** The owner confirmed that all Glass Update features were tested and working on their ESP32-S3 touchscreen and Pixel 9, including startup, locked-screen notification delivery, and music artwork.

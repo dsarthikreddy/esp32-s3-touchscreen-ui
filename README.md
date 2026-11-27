@@ -141,7 +141,7 @@ The example configuration is enough to compile and try the local interface. Live
 
 ## Project reference
 
-Owner-reported hardware testing covers display, touch, networking, and peripherals. See the [test matrix](TEST_RESULTS.md) for the full scope.
+The owner tested the full Glass Update on their ESP32-S3 touchscreen and Pixel 9 and confirmed that all features worked on that setup. See the [test results](TEST_RESULTS.md) for details.
 
 | Looking for | Read |
 |---|---|
