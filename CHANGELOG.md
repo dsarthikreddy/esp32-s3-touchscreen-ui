@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## Glass Update and Android Companion 0.2
+
+- Added Android pairing, phone battery and notifications, music controls, and track artwork from compatible players.
+- Added the draggable Hyderabad map, calendar through 2099, ten-city world clock, local photo library, and optional stock and crypto panels.
+- Refined the glass controls, added independently resizable Control Center tiles, and made Wi-Fi scanning asynchronous.
+- Moved network downloads out of startup and added Serial Monitor timings for the first frame and touch loop.
+- Added a complete Arduino-ready ZIP, a companion APK, and step-by-step setup and notification testing instructions.
+
 ## [2.0.1] — 2026-11-27 (Documentation, Security & Repository Release)
 ### Added
 - `.gitignore` excluding local secrets (`secrets.h`, `.env`, keys, biometric/private files) and Arduino/PlatformIO build outputs.

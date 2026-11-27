@@ -56,14 +56,12 @@ Compiled static memory footprint (see [TEST_RESULTS.md](TEST_RESULTS.md)):
 ## 3. Boot Sequence (`setup()`)
 1. Initialize Serial (`115200`), 12-bit ADC, `GPIO 14` PWM, `GPIO 5/6/7` LOW, and `GPIO 48` WS2812 blue.
 2. `tft.init()` + `tft.setRotation(1)` (landscape 480x320).
-3. Load NVS `"cuteos"` (`bri`, `w0`, `w1`, `cal`) and apply brightness.
-4. Draw initial boot splash directly to `tft`.
-5. Allocate 5 full-screen + 5 thumbnail sprites in OPI PSRAM; halt on failure.
-6. Detect RGB565 endianness (`spriteIsSwapped`) via `canvas.drawPixel(0, 0, TFT_RED)`.
-7. Generate procedural Everest fallback + pre-baked glass + offline map + offline news placeholders.
-8. Apply NVS touch calibration or launch interactive 4-corner calibration.
-9. Connect to Wi-Fi (`8s` timeout). If online: sync NTP, fetch Open-Meteo weather, download Everest photo (rebuilding glass buffers), download 3x3 OSM map tiles, and fetch 5 BBC RSS news items + images.
-10. Render `SCR_HOME` to `canvas` and push full frame.
+3. Load brightness, widget slots, Control Center tile sizes, phone link settings, and touch calibration from NVS.
+4. Allocate five full-screen sprites and five thumbnails in OPI PSRAM, then detect the sprite's RGB565 byte order.
+5. Draw the local mountain wallpaper, glass buffers, offline map, and news placeholders.
+6. Apply saved touch calibration or open the four-corner calibration screen.
+7. Draw Home and log its first frame time. Start Wi-Fi and resume a paired phone on the first loop.
+8. Fetch weather and the wallpaper on a network task. Load news when its screen opens and map tiles when requested in Map.
 
 ---
 
