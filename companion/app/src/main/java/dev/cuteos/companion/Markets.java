@@ -51,7 +51,7 @@ final class Markets {
             if (records.isEmpty()) return List.of("E\t" + request + "\tProvider unavailable or quota exceeded");
         }
         if (records.isEmpty()) return List.of("E\t" + request + "\tNo quotes returned");
-        records.add("E\t" + request + "\t" + (stocks ? "Twelve Data / latest daily bar" : "CoinGecko / USD"));
+        records.add("E\t" + request + "\t" + (stocks ? "Twelve Data / * daily close" : "CoinGecko / USD"));
         List<String> result = List.copyOf(records);
         pages.set(request, result);
         fetchedAt[request] = SystemClock.elapsedRealtime();
@@ -78,9 +78,9 @@ final class Markets {
     private static void loadStocks(List<String> results, int request, int index, String key) throws Exception {
         for (int row = 0; row < PAGE_SIZE; ++row) {
             String symbol = STOCKS[index * PAGE_SIZE + row];
-            String address = "https://api.twelvedata.com/time_series?interval=1day&outputsize=12&symbol="
-                    + Uri.encode(symbol.replace(":NSE", "")) + (symbol.endsWith(":NSE") ? "&exchange=NSE" : "")
-                    + "&apikey=" + Uri.encode(key);
+            String query = "symbol=" + Uri.encode(symbol.replace(":NSE", ""))
+                    + (symbol.endsWith(":NSE") ? "&exchange=NSE" : "") + "&apikey=" + Uri.encode(key);
+            String address = "https://api.twelvedata.com/time_series?interval=1day&outputsize=12&" + query;
             JSONObject response = new JSONObject(fetch(address, null));
             JSONArray history = response.optJSONArray("values");
             if (history == null || history.length() < 2) {
@@ -92,9 +92,22 @@ final class Markets {
                 points[i] = history.getJSONObject(points.length - i - 1).getDouble("close");
             }
             double last = points[points.length - 1], previous = points[points.length - 2];
-            results.add(record(request, row, symbol.replace(":NSE", ""),
-                    response.getJSONObject("meta").optString("currency", ""),
-                    last, previous > 0 ? (last / previous - 1) * 100 : Double.NaN, points));
+            double change = previous > 0 ? (last / previous - 1) * 100 : Double.NaN;
+            String label = symbol.replace(":NSE", "");
+            String currency = response.getJSONObject("meta").optString("currency", "");
+            boolean hasQuote = false;
+            try {
+                JSONObject quote = new JSONObject(fetch("https://api.twelvedata.com/quote?" + query, null));
+                double quotedPrice = quote.optDouble("close", Double.NaN);
+                if (Double.isFinite(quotedPrice) && quotedPrice > 0) {
+                    last = quotedPrice;
+                    change = quote.optDouble("percent_change", Double.NaN);
+                    hasQuote = true;
+                }
+            } catch (java.io.IOException | org.json.JSONException unavailableQuote) {
+                // A restricted subscription or quota can still allow daily bars.
+            }
+            results.add(record(request, row, hasQuote ? label : label + "*", currency, last, change, points));
         }
     }
 

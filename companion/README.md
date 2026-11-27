@@ -17,7 +17,7 @@ On the display, swipe left from Home for **Music**. Play/pause, next/previous, �
 
 On the phone, open **Market data keys** and enter a CoinGecko Demo key for crypto or a Twelve Data key for stocks. Keys are kept in the Android app's private settings and sent over HTTPS to their respective providers. The display receives the quote data over the paired BLE connection.
 
-Swipe right through **News → Phone → Markets**. Use the arrows for more symbols and **Refresh** to request the current page. Crypto shows up to 100 assets sorted by market cap, 24-hour change, and a seven-day trend. Stocks cover 60 preset US and Indian symbols and show the latest daily bar, change from the prior bar, and a recent trend. Stock exchange coverage and data delays depend on your provider plan. A missing quote is shown as unavailable.
+Swipe right through **News → Phone → Markets**. Use the arrows for more symbols and **Refresh** to request the current page. Crypto shows up to 100 assets sorted by market cap, 24-hour change, and a seven-day trend. Stocks cover 60 preset US and Indian symbols and show the latest available quote, percentage change, and a recent daily trend. An asterisk marks a fallback to the latest daily close. Stock exchange coverage, data delays, and refresh limits depend on your provider plan.
 
 ## Build from source
 
