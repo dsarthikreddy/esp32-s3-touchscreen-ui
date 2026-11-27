@@ -2,7 +2,7 @@
 
 A standalone, glassy smart display firmware for the **ESP32-S3-N16R8** paired with a **3.5-inch 320x480 ILI9488 SPI TFT** and **XPT2046 resistive touchscreen**, built with **LovyanGFX**.
 
-> **Project Status:** Firmware compiles cleanly for `esp32:esp32:esp32s3` (16 MB Flash, OPI PSRAM). Runtime hardware verification on physical hardware was not performed in this documentation/repository setup session—see [TEST_RESULTS.md](TEST_RESULTS.md) for what is verified vs. untested.
+> **Project Status:** Firmware compiles cleanly for `esp32:esp32:esp32s3` (16 MB Flash, OPI PSRAM). The owner tested the firmware on physical hardware. See [TEST_RESULTS.md](TEST_RESULTS.md) for build results and the hardware test matrix.
 
 ---
 
@@ -103,6 +103,6 @@ Set these exact options under **Tools** before compiling or uploading:
 | [DEPENDENCIES.md](DEPENDENCIES.md) | Core, library versions, APIs, and installation steps |
 | [DECISIONS.md](DECISIONS.md) | Architecture Decision Records (ADRs) |
 | [BUGS.md](BUGS.md) | Known issues, edge cases, and technical debt |
-| [TEST_RESULTS.md](TEST_RESULTS.md) | Compilation verification and tested vs. untested matrix |
+| [TEST_RESULTS.md](TEST_RESULTS.md) | Compilation results and hardware test matrix |
 | [TASKS.md](TASKS.md) | Feature status and future roadmap |
 | [CHANGELOG.md](CHANGELOG.md) | Release and maintenance history |

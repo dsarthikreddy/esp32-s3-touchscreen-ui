@@ -4,7 +4,7 @@
 - **Working Codebase:** [cuteOS.ino](cuteOS.ino) (`cuteOS v2.0`) is a complete standalone ESP32-S3 touchscreen OS written on top of `LovyanGFX` (`1.3.0`) and `esp32:esp32` (`2.0.17`).
 - **Sanitization Applied:** Hardcoded Wi-Fi credentials and exact home coordinates/estate strings were extracted into a gitignored `secrets.h` (which remains on the local machine so the owner's build behavior is 100% unchanged), with [secrets.example.h](secrets.example.h) committed as a safe template.
 - **Compilation Status:** Verified compiling cleanly via `arduino-cli` (`esp32:esp32:esp32s3` with `FlashSize=16M,PartitionScheme=huge_app,PSRAM=opi`).
-- **Hardware Runtime Status:** **Not tested on physical hardware during this handoff** (no ESP32-S3 board was connected over USB). Treat runtime touch calibration, Wi-Fi/HTTPS downloads, and GPIO electrical levels as unverified until flashed by the owner.
+- **Hardware Runtime Status:** Tested on physical hardware by the owner. See [TEST_RESULTS.md](TEST_RESULTS.md) for the subsystem matrix.
 
 ---
 

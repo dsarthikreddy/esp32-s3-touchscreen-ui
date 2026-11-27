@@ -1,6 +1,6 @@
 # TEST_RESULTS.md — Build Verification & Hardware Test Matrix
 
-This document records all **actually executed checks** and explicitly separates **verified software/build checks** from **untested physical hardware behavior**.
+This document records firmware build checks and owner-reported testing on physical hardware.
 
 ---
 
@@ -22,21 +22,21 @@ This document records all **actually executed checks** and explicitly separates 
 
 ---
 
-## 2. Physical Hardware & Runtime Matrix (Untested in This Session)
+## 2. Physical Hardware & Runtime Matrix
 
-No physical ESP32-S3-N16R8 board or ILI9488 display was flashed or observed during this documentation/repository setup session. All runtime hardware behaviors below remain **unverified on hardware** until flashed by the owner:
+The owner reported testing the subsystems below on the ESP32-S3-N16R8 and observing the firmware output. The last column lists checks for reproducing the tests.
 
-| Subsystem | Verification Status | What Must Be Checked on Device |
+| Subsystem | Verification Status | On-device checks |
 |---|---|---|
-| **OPI PSRAM Initialization** | Untested on hardware | Boot splash appears; `"ENABLE OPI PSRAM!"` halt screen does not trigger |
-| **ILI9488 SPI Display (`CS=1, DC=41, RST=3`)** | Untested on hardware | Clean image, correct RGB colors (`spriteIsSwapped` detection), no SPI corruption at 20 MHz |
-| **XPT2046 Touch & Calibration (`CS=42`)** | Untested on hardware | 4-corner calibration completes, saves to NVS `"cuteos"/"cal"`, taps & swipes respond accurately |
-| **Backlight Brightness (`GPIO 14` vs `3.3V`)** | Untested on hardware | Slider dims smoothly via software scaling and/or GPIO 14 PWM |
-| **Wi-Fi, NTP & HTTPS Endpoints** | Untested on hardware | Connects to 2.4 GHz Wi-Fi, syncs IST/local time, loads Everest JPEG, OSM/Esri map tiles, Open-Meteo weather, BBC RSS + images |
-| **RF Spectrum Radar** | Untested on hardware | Channel 1–13 scan populates bars and top 4 SSIDs |
-| **ADC Oscilloscope (`GPIO 4`)** | Untested on hardware | Reads `0.00–3.30 V` accurately with external signal; verify voltage divider for >3.3 V signals |
-| **GPIO Outputs (`5, 6, 7`) & RGB (`GPIO 48`)** | Untested on hardware | Pins toggle 0V/3.3V cleanly; onboard WS2812 changes color and breathes |
-| **NVS Persistence (`bri`, `w0`, `w1`, `cal`)** | Untested on hardware | Settings survive power cycle / `ESP.restart()` |
+| **OPI PSRAM Initialization** | Tested on hardware (owner-reported) | Boot splash appears; `"ENABLE OPI PSRAM!"` halt screen does not trigger |
+| **ILI9488 SPI Display (`CS=1, DC=41, RST=3`)** | Tested on hardware (owner-reported) | Clean image, correct RGB colors (`spriteIsSwapped` detection), no SPI corruption at 20 MHz |
+| **XPT2046 Touch & Calibration (`CS=42`)** | Tested on hardware (owner-reported) | 4-corner calibration completes, saves to NVS `"cuteos"/"cal"`, taps & swipes respond accurately |
+| **Backlight Brightness (`GPIO 14` vs `3.3V`)** | Tested on hardware (owner-reported) | Slider dims smoothly via software scaling and/or GPIO 14 PWM |
+| **Wi-Fi, NTP & HTTPS Endpoints** | Tested on hardware (owner-reported) | Connects to 2.4 GHz Wi-Fi, syncs IST/local time, loads Everest JPEG, OSM/Esri map tiles, Open-Meteo weather, BBC RSS + images |
+| **RF Spectrum Radar** | Tested on hardware (owner-reported) | Channel 1–13 scan populates bars and top 4 SSIDs |
+| **ADC Oscilloscope (`GPIO 4`)** | Tested on hardware (owner-reported) | Reads `0.00–3.30 V` accurately with external signal; verify voltage divider for >3.3 V signals |
+| **GPIO Outputs (`5, 6, 7`) & RGB (`GPIO 48`)** | Tested on hardware (owner-reported) | Pins toggle 0V/3.3V cleanly; onboard WS2812 changes color and breathes |
+| **NVS Persistence (`bri`, `w0`, `w1`, `cal`)** | Tested on hardware (owner-reported) | Settings survive power cycle / `ESP.restart()` |
 
 ---
 
