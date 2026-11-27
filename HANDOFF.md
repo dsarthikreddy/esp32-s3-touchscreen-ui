@@ -1,14 +1,14 @@
 # HANDOFF.md — Engineering Handoff Guide
 
 ## 1. Current State Summary
-- **Working Codebase:** [AURAOS.ino](AURAOS.ino) (`cuteOS v2.0`) is a complete standalone ESP32-S3 touchscreen OS written on top of `LovyanGFX` (`1.3.0`) and `esp32:esp32` (`2.0.17`).
+- **Working Codebase:** [cuteOS.ino](cuteOS.ino) (`cuteOS v2.0`) is a complete standalone ESP32-S3 touchscreen OS written on top of `LovyanGFX` (`1.3.0`) and `esp32:esp32` (`2.0.17`).
 - **Sanitization Applied:** Hardcoded Wi-Fi credentials and exact home coordinates/estate strings were extracted into a gitignored `secrets.h` (which remains on the local machine so the owner's build behavior is 100% unchanged), with [secrets.example.h](secrets.example.h) committed as a safe template.
 - **Compilation Status:** Verified compiling cleanly via `arduino-cli` (`esp32:esp32:esp32s3` with `FlashSize=16M,PartitionScheme=huge_app,PSRAM=opi`).
 - **Hardware Runtime Status:** **Not tested on physical hardware during this handoff** (no ESP32-S3 board was connected over USB). Treat runtime touch calibration, Wi-Fi/HTTPS downloads, and GPIO electrical levels as unverified until flashed by the owner.
 
 ---
 
-## 2. Code Map of `AURAOS.ino`
+## 2. Code Map of `cuteOS.ino`
 
 | Section | Approx. Lines | Responsibility |
 |---|---|---|
@@ -41,7 +41,7 @@
 ---
 
 ## 4. Immediate Next Steps for the Owner
-1. Connect the ESP32-S3-N16R8 via USB and upload `AURAOS.ino` with **Tools -> PSRAM -> OPI PSRAM**.
+1. Connect the ESP32-S3-N16R8 via USB and upload `cuteOS.ino` with **Tools -> PSRAM -> OPI PSRAM**.
 2. Complete the 4-corner touch calibration on first boot (saved to NVS flash).
 3. Verify boot Wi-Fi connection, Everest photo fetch, map tiles, weather, and news feeds on Serial Monitor (`115200` baud).
 4. Review [BUGS.md](BUGS.md) and [TASKS.md](TASKS.md) before adding new features or attempting an LVGL migration.

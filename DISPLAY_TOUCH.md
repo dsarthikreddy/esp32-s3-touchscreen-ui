@@ -1,6 +1,6 @@
 # DISPLAY_TOUCH.md — Display, Touch, Calibration & Brightness
 
-All driver settings documented below are **verified directly from [AURAOS.ino](AURAOS.ino)** using `LovyanGFX` `1.3.0`.
+All driver settings documented below are **verified directly from [cuteOS.ino](cuteOS.ino)** using `LovyanGFX` `1.3.0`.
 
 ---
 
@@ -52,7 +52,7 @@ All driver settings documented below are **verified directly from [AURAOS.ino](A
 
 ## 4. Dual Brightness Control (`20%` – `100%`)
 
-`AURAOS.ino` implements two simultaneous dimming mechanisms so brightness works regardless of how pin 8 (`LED`) on the display is wired:
+`cuteOS.ino` implements two simultaneous dimming mechanisms so brightness works regardless of how pin 8 (`LED`) on the display is wired:
 
 1. **Software Brightness (`applySoftwareBrightnessRect`):**
    - Scales every RGB565 pixel inside `canvas` buffer just before pushing to the screen (`pushFullFrame()` / `pushPartial()`), when `screenBrightness < 98`.

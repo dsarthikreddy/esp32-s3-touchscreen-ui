@@ -1,7 +1,7 @@
 # HARDWARE.md — Hardware Architecture & Specifications
 
 > **Verification Legend:**
-> - **Verified (Code):** Directly defined and configured in [AURAOS.ino](AURAOS.ino).
+> - **Verified (Code):** Directly defined and configured in [cuteOS.ino](cuteOS.ino).
 > - **Assumed / Hardware-Dependent:** Expected physical hardware characteristics inferred from the firmware comments and board model, not physically inspected or probed on a bench during this session.
 
 ---
@@ -55,4 +55,4 @@
 1. **3.3 V Logic Only:** All ESP32-S3 GPIOs (`GPIO 4, 5, 6, 7, 14, 38–42, 1, 3, 48`) are strictly **3.3 V**. Never feed `5 V` directly into `GPIO 4` (the ADC Oscilloscope pin) or you can permanently damage the chip.
 2. **Backlight Current:** A 3.5" TFT backlight draws ~60–120 mA. If you wire the display `LED` pin to `GPIO 14` instead of `3.3V`, use a transistor/MOSFET driver or verify your module's `LED` pin already has an onboard transistor—do not exceed ESP32-S3 GPIO max drive current (~20–40 mA).
 3. **USB Power:** Wi-Fi transmission peaks + TFT backlight + 8 MB OPI PSRAM require a clean 5 V USB supply (use a good quality data cable and direct motherboard/powered hub USB port).
-4. **SD Card Slot (on 14-pin Red PCB):** Many 14-pin red ILI9488 PCBs include a rear SD card header (`SD_CS`, `SD_MOSI`, `SD_MISO`, `SD_SCK`). It is **not used** in `AURAOS.ino`.
+4. **SD Card Slot (on 14-pin Red PCB):** Many 14-pin red ILI9488 PCBs include a rear SD card header (`SD_CS`, `SD_MOSI`, `SD_MISO`, `SD_SCK`). It is **not used** in `cuteOS.ino`.

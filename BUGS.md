@@ -1,6 +1,6 @@
 # BUGS.md — Known Issues, Edge Cases & Technical Debt
 
-All items below were identified through static inspection of [AURAOS.ino](AURAOS.ino). Existing behavior was intentionally preserved without redesign.
+All items below were identified through static inspection of [cuteOS.ino](cuteOS.ino). Existing behavior was intentionally preserved without redesign.
 
 ---
 

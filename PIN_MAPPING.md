@@ -1,6 +1,6 @@
 # PIN_MAPPING.md — ESP32-S3 GPIO & 14-Pin Display Wiring
 
-All pin numbers below are **verified from source code** ([AURAOS.ino](AURAOS.ino), lines 48–137). Physical jumper wires on the user's desk were not visually inspected; verify against your physical breadboard/PCB before powering on.
+All pin numbers below are **verified from source code** ([cuteOS.ino](cuteOS.ino), lines 48–137). Physical jumper wires on the user's desk were not visually inspected; verify against your physical breadboard/PCB before powering on.
 
 ---
 
@@ -50,7 +50,7 @@ Standard 14-pin red SPI TFT + Touch modules expose pins 1–14 in the order belo
 
 ## 3. ESP32-S3 Pin Safety & Reserved Pins Avoided
 
-- **OPI PSRAM & Flash Reserved Pins (`GPIO 26–37`):** On ESP32-S3-N16R8 modules with Octal PSRAM, `GPIO 33–37` (in addition to SPI0/1 `26–32`) are internally used by Octal PSRAM/Flash and **must never be used**. `AURAOS.ino` uses `GPIO 38–42`, which safely avoids `26–37`.
+- **OPI PSRAM & Flash Reserved Pins (`GPIO 26–37`):** On ESP32-S3-N16R8 modules with Octal PSRAM, `GPIO 33–37` (in addition to SPI0/1 `26–32`) are internally used by Octal PSRAM/Flash and **must never be used**. `cuteOS.ino` uses `GPIO 38–42`, which safely avoids `26–37`.
 - **Strapping Pins (`GPIO 0, 3, 45, 46`):**
   - `GPIO 3` is used as `LCD_RST`. On ESP32-S3, `GPIO 3` selects JTAG signal source if eFuse is unburned, though in default hardware CDC mode it operates safely as a push-pull output after boot. Avoid external pull-downs that fight boot strapping.
 - **USB Pins (`GPIO 19, 20`):** Untouched (`USB D-` / `USB D+`), keeping USB CDC/JTAG functional.

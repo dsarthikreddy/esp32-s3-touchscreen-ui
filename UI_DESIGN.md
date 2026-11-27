@@ -6,7 +6,7 @@
 
 ## 1. Visual Language & Design Tokens
 
-### Color Palette (`AURAOS.ino` lines 147–175)
+### Color Palette (`cuteOS.ino` lines 147–175)
 - **Neutrals & Glass:** `C_WHITE` (`0xFFFF`), `C_SNOW` (`0xF7DF`), `C_SOFT_GRAY` (`0xE75E`), `C_BORDER` (`0xD6DC`), `C_INK` (`0x18E4`), `C_INK_SUB` (`0x5B2E`), `C_DARK_PILL` (`0x10A4`)
 - **Vibrant Accents:** `C_BLUE` (`0x13DF`), `C_CYAN` (`0x0E7F`), `C_GREEN` (`0x262B`), `C_GOLD` (`0xFE21`), `C_ORANGE` (`0xFBAA`), `C_RED` (`0xF9CA`), `C_ROSE` (`0xF96E`), `C_VIOLET` (`0x9A1E`), `C_TEAL` (`0x05D9`)
 - **Soft Card Tints:** `C_TINT_BLUE`, `C_TINT_GREEN`, `C_TINT_GOLD`, `C_TINT_ROSE`, `C_TINT_VIOLET`

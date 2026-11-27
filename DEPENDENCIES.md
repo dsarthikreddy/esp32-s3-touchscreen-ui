@@ -13,13 +13,13 @@ All installed versions below were verified directly against the local developmen
 | **Compiler (`xtensa-esp32s3-elf-gcc`)** | `esp-2021r2-patch5-8.4.0` | Installed automatically by `esp32:esp32` core |
 | **Uploader (`esptool_py`)** | `4.5.1` | Installed automatically by `esp32:esp32` core |
 
-> **ESP32 Core 2.x vs 3.x Note:** [AURAOS.ino](AURAOS.ino) includes a compile-time guard (`ESP_ARDUINO_VERSION_MAJOR >= 3`) for `rgbLedWrite` vs `neopixelWrite`. However, compilation and runtime behavior have only been verified on **`2.0.17`**. If upgrading to `3.x`, test `analogWrite`, `WiFiClientSecure`, and `LovyanGFX` `1.3.0` carefully.
+> **ESP32 Core 2.x vs 3.x Note:** [cuteOS.ino](cuteOS.ino) includes a compile-time guard (`ESP_ARDUINO_VERSION_MAJOR >= 3`) for `rgbLedWrite` vs `neopixelWrite`. However, compilation and runtime behavior have only been verified on **`2.0.17`**. If upgrading to `3.x`, test `analogWrite`, `WiFiClientSecure`, and `LovyanGFX` `1.3.0` carefully.
 
 ---
 
 ## 2. Third-Party & Core Libraries
 
-| Library | Version | Source | Purpose in `AURAOS.ino` |
+| Library | Version | Source | Purpose in `cuteOS.ino` |
 |---|---|---|---|
 | **LovyanGFX** (`lovyan03`) | **`1.3.0`** | Arduino Library Manager (`user` libs) | ILI9488 SPI display, XPT2046 touch, PSRAM sprites, JPEG/PNG decoding, FreeSerif fonts |
 | **WiFi** | Built into `esp32:esp32` `2.0.17` | Espressif Core | Station mode (`WIFI_STA`), 2.4 GHz RF channel scan |
@@ -28,7 +28,7 @@ All installed versions below were verified directly against the local developmen
 | **Preferences** | Built into `esp32:esp32` `2.0.17` | Espressif Core | NVS flash storage (`"cuteos"` namespace) |
 | **time.h / math.h** | Built into ESP-IDF / Newlib | Standard C / POSIX | `configTime()`, `getLocalTime()`, trig/rounding math |
 
-*(Other libraries present on the owner's system—such as `Adafruit_GFX`, `MFRC522`, `NimBLE-Arduino`, `ESP32Servo`—are **not** used by `AURAOS.ino`.)*
+*(Other libraries present on the owner's system—such as `Adafruit_GFX`, `MFRC522`, `NimBLE-Arduino`, `ESP32Servo`—are **not** used by `cuteOS.ino`.)*
 
 ---
 

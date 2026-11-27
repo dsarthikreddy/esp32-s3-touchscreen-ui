@@ -3,7 +3,7 @@
 This file provides workspace context for Gemini CLI, Antigravity IDE, and Gemini-based coding assistants. For full cross-assistant details, also read [AI_CONTEXT.md](AI_CONTEXT.md).
 
 ## Project Summary
-- **Repository:** `esp32-s3-touchscreen-ui` (`AURAOS.ino` / `cuteOS v2.0`)
+- **Repository:** `esp32-s3-touchscreen-ui` (`cuteOS.ino` / `cuteOS v2.0`)
 - **MCU:** ESP32-S3-N16R8 (16 MB Flash, 8 MB OPI PSRAM)
 - **Display & Touch:** 3.5" 320x480 `ILI9488` SPI TFT + `XPT2046` resistive touch via `LovyanGFX` `1.3.0`
 - **Core:** Arduino `esp32:esp32` `2.0.17`

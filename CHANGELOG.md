@@ -12,7 +12,7 @@ All notable changes to this project are documented in this file.
 - Private GitHub repository (`esp32-s3-touchscreen-ui`) initialized and verified.
 
 ### Changed
-- Extracted hardcoded Wi-Fi credentials and private home coordinates/labels from [AURAOS.ino](AURAOS.ino) into gitignored `secrets.h` using `#if __has_include("secrets.h")` with `secrets.example.h` fallback. Preserved 100% of existing firmware behavior and local configuration.
+- Extracted hardcoded Wi-Fi credentials and private home coordinates/labels from [cuteOS.ino](cuteOS.ino) into gitignored `secrets.h` using `#if __has_include("secrets.h")` with `secrets.example.h` fallback. Preserved 100% of existing firmware behavior and local configuration.
 
 ---
 

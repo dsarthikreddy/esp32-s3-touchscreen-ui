@@ -2,8 +2,8 @@
 
 ---
 
-## ADR-001: Single-File Sketch (`AURAOS.ino`) Preserved Over Multi-File Split
-- **Context:** All firmware logic (~2,240 lines across 15 sections) resides in [AURAOS.ino](AURAOS.ino).
+## ADR-001: Single-File Sketch (`cuteOS.ino`) Preserved Over Multi-File Split
+- **Context:** All firmware logic (~2,240 lines across 15 sections) resides in [cuteOS.ino](cuteOS.ino).
 - **Decision:** Keep the single-file structure intact rather than splitting into `.h`/`.cpp` modules during documentation and repository setup.
 - **Rationale:** Zero risk of breaking Arduino IDE prototype generation, global symbol ordering, or working behavior; trivially inspectable in one file by beginners and AI assistants.
 - **Consequences:** Longer single file (~96 KB); future feature growth (e.g., LVGL migration) will merit splitting into `ui/`, `net/`, `hal/` modules.
@@ -48,6 +48,6 @@
 ---
 
 ## ADR-007: Secrets Extraction via `secrets.h` + `secrets.example.h`
-- **Context:** Original `AURAOS.ino` embedded Wi-Fi SSID/password and exact residential coordinates/estate labels directly in source code.
+- **Context:** Original `cuteOS.ino` embedded Wi-Fi SSID/password and exact residential coordinates/estate labels directly in source code.
 - **Decision:** Extract all credentials and private location strings into gitignored `secrets.h`, commit sanitized `secrets.example.h`, and include via `#if __has_include("secrets.h")` fallback.
 - **Rationale:** Preserves 100% identical local build/runtime behavior for the owner while ensuring zero secrets or PII are pushed to GitHub and allowing fresh clones to compile out of the box.

@@ -1,10 +1,10 @@
 #pragma once
 
 // ============================================================================
-// Sanitized Configuration Template for AURAOS (cuteOS v2.0)
+// Sanitized Configuration Template for cuteOS v2.0
 // ============================================================================
 // Instructions:
-//   1. Copy this file to `secrets.h` in the same folder as `AURAOS.ino`.
+//   1. Copy this file to `secrets.h` in the same folder as `cuteOS.ino`.
 //   2. Replace the placeholder values below with your own Wi-Fi and location.
 //   3. `secrets.h` is listed in `.gitignore` and will not be pushed to GitHub.
 // ============================================================================

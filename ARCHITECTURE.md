@@ -4,11 +4,11 @@
 
 ## 1. High-Level System Architecture
 
-`AURAOS.ino` is structured as a **single-translation-unit, retained-canvas immediate-mode GUI** running on Arduino-ESP32 (`loop()` on Core 1, Wi-Fi/TCP stack on Core 0).
+`cuteOS.ino` is structured as a **single-translation-unit, retained-canvas immediate-mode GUI** running on Arduino-ESP32 (`loop()` on Core 1, Wi-Fi/TCP stack on Core 0).
 
 ```text
 +-------------------------------------------------------------------+
-|                         AURAOS.ino (loop)                         |
+|                         cuteOS.ino (loop)                         |
 |  pollTouch() ---> handleSwipe() / handleTap() ---> uiDirty = true |
 |  ADC Scope (55ms) | RGB Breathe (45ms) | Timer (1s) | NTP (10s)   |
 +---------------------------------+---------------------------------+
@@ -85,7 +85,7 @@ Compiled static memory footprint (see [TEST_RESULTS.md](TEST_RESULTS.md)):
 
 ## 6. Future LVGL Integration Assessment (Without Changing Existing Firmware)
 
-> This section evaluates migrating `AURAOS` to **LVGL (v8.3 or v9.x)** in a future branch while keeping the current LovyanGFX firmware untouched.
+> This section evaluates migrating `cuteOS` to **LVGL (v8.3 or v9.x)** in a future branch while keeping the current LovyanGFX firmware untouched.
 
 ### Feasibility: **High (Well-Suited Hardware)**
 The ESP32-S3-N16R8 has **8 MB OPI PSRAM**, **16 MB Flash**, and **DMA SPI2**, which easily exceeds LVGL's minimum requirements (~64 KB RAM + 200 KB Flash).

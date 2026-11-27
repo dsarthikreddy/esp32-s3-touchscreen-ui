@@ -5,7 +5,7 @@
 ---
 
 ## 1. Project Identity
-- **Firmware Name:** `AURAOS.ino` (internally branded `cuteOS v2.0`)
+- **Firmware Name:** `cuteOS.ino` (internally branded `cuteOS v2.0`)
 - **Target MCU:** ESP32-S3-N16R8 (Dual-core Xtensa LX7 @ 240 MHz, 16 MB QIO Flash, **8 MB OPI PSRAM**)
 - **Display:** 3.5" 320x480 TFT LCD (`ILI9488`), rotated to landscape (`setRotation(1)` -> `480x320`)
 - **Touch Controller:** `XPT2046` resistive touch sharing `SPI2_HOST` with the display
@@ -15,7 +15,7 @@
 ---
 
 ## 2. Repository Files
-- `AURAOS.ino` — Entire firmware source (15 numbered sections, ~2,240 lines)
+- `cuteOS.ino` — Entire firmware source (15 numbered sections, ~2,240 lines)
 - `secrets.example.h` — Sanitized template for Wi-Fi SSID/password, home lat/lon, and region labels
 - `secrets.h` — **Gitignored** local configuration (must exist locally for user's Wi-Fi/location; falls back to `secrets.example.h` via `__has_include` if missing)
 - `.gitignore` — Excludes `secrets.h`, `.env`, keys, biometric/private files, and build outputs
@@ -27,13 +27,13 @@
 1. **Do NOT change pin numbers** in `class LGFX` unless the user explicitly changed physical wiring.
 2. **Keep `OPI PSRAM` enabled** (`PSRAM=opi`). The firmware allocates ~1.86 MB of sprites via `setPsram(true)` and halts with `"ENABLE OPI PSRAM!"` if any allocation fails.
 3. **Preserve SPI bus sharing:** `cfg.bus_shared = true` and `cfg.use_lock = true` on `SPI2_HOST` (`SCLK=40`, `MOSI=39`, `MISO=38`) are required because `ILI9488` (`CS=1`) and `XPT2046` (`CS=42`) share the same SPI bus.
-4. **Never hardcode secrets** in `AURAOS.ino` or any tracked file. Put Wi-Fi credentials, GPS coordinates, API keys, and personal labels only in `secrets.h`.
+4. **Never hardcode secrets** in `cuteOS.ino` or any tracked file. Put Wi-Fi credentials, GPS coordinates, API keys, and personal labels only in `secrets.h`.
 5. **Maintain ESP32 Arduino Core 2.0.17 compatibility** (and keep the `ESP_ARDUINO_VERSION_MAJOR >= 3` guard on `rgbLedWrite` / `neopixelWrite`).
 6. **Do not rewrite UI to LVGL** unless explicitly asked to perform a major migration (see `ARCHITECTURE.md` Section 7 for LVGL assessment).
 
 ---
 
-## 4. Verified Pinout Summary (`AURAOS.ino` lines 43–122)
+## 4. Verified Pinout Summary (`cuteOS.ino` lines 43–122)
 - **Shared SPI2 Bus (`SPI2_HOST`):** `SCLK=40`, `MOSI=39`, `MISO=38`
 - **ILI9488 Display:** `DC=41`, `CS=1`, `RST=3`, `BUSY=-1` (`freq_write=20MHz`, `freq_read=16MHz`, `readable=false`)
 - **XPT2046 Touch:** `CS=42`, `INT=-1` (`freq=1.5MHz`)

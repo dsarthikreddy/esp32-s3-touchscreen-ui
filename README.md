@@ -1,4 +1,4 @@
-# AURAOS (`cuteOS v2.0`) — ESP32-S3 Touchscreen Smart OS
+# cuteOS v2.0 — ESP32-S3 Touchscreen Smart OS
 
 A standalone, glassy smart display firmware for the **ESP32-S3-N16R8** paired with a **3.5-inch 320x480 ILI9488 SPI TFT** and **XPT2046 resistive touchscreen**, built with **LovyanGFX**.
 
@@ -41,7 +41,7 @@ A standalone, glassy smart display firmware for the **ESP32-S3-N16R8** paired wi
 3. Open **Tools -> Manage Libraries**, search `LovyanGFX` by **lovyan03**, and install version **`1.3.0`**.
 
 ### 3. Configure Wi-Fi & Location Secrets
-1. In the project folder (`AURAOS/`), copy `secrets.example.h` to `secrets.h`:
+1. Name the project folder `cuteOS` so Arduino can find `cuteOS.ino`. In that folder, copy `secrets.example.h` to `secrets.h`:
    ```powershell
    Copy-Item secrets.example.h secrets.h
    ```
@@ -63,7 +63,7 @@ Set these exact options under **Tools** before compiling or uploading:
 | **Upload Speed** | `921600` | Drop to `115200` if flashing fails |
 
 ### 5. Compile & Upload
-- **Arduino IDE:** Open `AURAOS.ino`, select your COM port under **Tools -> Port**, and click **Upload**.
+- **Arduino IDE:** Open `cuteOS.ino`, select your COM port under **Tools -> Port**, and click **Upload**.
 - **Command Line (`arduino-cli`):**
   ```powershell
   arduino-cli compile --fqbn "esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=huge_app,PSRAM=opi,CPUFreq=240,FlashMode=qio" .

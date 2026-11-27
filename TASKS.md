@@ -2,7 +2,7 @@
 
 ---
 
-## 1. Completed Features (Implemented in `AURAOS.ino`)
+## 1. Completed Features (Implemented in `cuteOS.ino`)
 
 - [x] **Hardware Driver Setup:** `LovyanGFX` `1.3.0` (`ILI9488` + `XPT2046` on shared `SPI2_HOST`)
 - [x] **OPI PSRAM Compositor:** 5 full-screen 480x320 sprites + 5 news image sprites (`~1.82 MB`)

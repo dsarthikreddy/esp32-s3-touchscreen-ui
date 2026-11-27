@@ -14,9 +14,9 @@ This document records all **actually executed checks** and explicitly separates 
 
 | Test | Scope | Result | Measured Output |
 |---|---|---|---|
-| **Baseline Firmware Compile** | Original `AURAOS.ino` before sanitization | **PASS** (exit `0`) | Flash: `1,071,321` bytes (`34%` of `3,145,728`); Global SRAM: `50,756` bytes (`15%` of `327,680`, `276,924` free) |
-| **Sanitized Local Compile** | `AURAOS.ino` + gitignored `secrets.h` | **PASS** (exit `0`) | Flash: `1,072,365` bytes (`34%` of `3,145,728`); Global SRAM: `50,756` bytes (`15%` of `327,680`, `276,924` free) |
-| **Clean-Clone Compile** | Isolated temp folder with `AURAOS.ino` + `secrets.example.h` (no `secrets.h`) | **PASS** (exit `0`) | Flash: `1,072,349` bytes (`34%` of `3,145,728`); Global SRAM: `50,756` bytes (`15%` of `327,680`, `276,924` free) |
+| **Baseline Firmware Compile** | Original `cuteOS.ino` before sanitization | **PASS** (exit `0`) | Flash: `1,071,321` bytes (`34%` of `3,145,728`); Global SRAM: `50,756` bytes (`15%` of `327,680`, `276,924` free) |
+| **Sanitized Local Compile** | `cuteOS.ino` + gitignored `secrets.h` | **PASS** (exit `0`) | Flash: `1,072,365` bytes (`34%` of `3,145,728`); Global SRAM: `50,756` bytes (`15%` of `327,680`, `276,924` free) |
+| **Clean-Clone Compile** | Isolated temp folder with `cuteOS.ino` + `secrets.example.h` (no `secrets.h`) | **PASS** (exit `0`) | Flash: `1,072,349` bytes (`34%` of `3,145,728`); Global SRAM: `50,756` bytes (`15%` of `327,680`, `276,924` free) |
 | **Static Secret & PII Scan** | All files excluding `secrets.h` | **PASS** (`0` matches) | Zero Wi-Fi passwords, SSIDs, coordinates, or personal location strings in tracked files |
 | **Connected Board Detection** | `arduino-cli board list` | **No boards found** | Confirmed no ESP32-S3 attached via USB during test session |
 
