@@ -7,6 +7,11 @@ on:
   pull_request:
     paths: ['companion/**', '.github/workflows/companion-build.yml']
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Draft release tag to publish from main
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -32,3 +37,30 @@ jobs:
           name: cuteOS-Companion-APK
           path: companion/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+  publish:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.release_tag != ''
+    needs: apk
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          name: cuteOS-Companion-APK
+          path: release
+      - name: Package and publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
+          gh release view "$RELEASE_TAG" --json isDraft,targetCommitish |
+            jq -e --arg expected "$GITHUB_SHA" '.isDraft and .targetCommitish == $expected'
+          git archive --format=zip --prefix=cuteOS/ --output=release/cuteOS.zip "$GITHUB_SHA"
+          mv release/app-debug.apk release/cuteOS-companion.apk
+          unzip -tq release/cuteOS.zip
+          gh release upload "$RELEASE_TAG" release/cuteOS.zip release/cuteOS-companion.apk --clobber
+          gh release edit "$RELEASE_TAG" --draft=false --latest
