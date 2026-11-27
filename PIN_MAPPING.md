@@ -1,6 +1,43 @@
-# PIN_MAPPING.md — ESP32-S3 GPIO & 14-Pin Display Wiring
+# ESP32-S3 display and touch wiring
 
-All pin numbers below are **verified from source code** ([cuteOS.ino](cuteOS.ino), lines 48–137). Physical jumper wires on the user's desk were not visually inspected; verify against your physical breadboard/PCB before powering on.
+[Quick-start wiring table](README.md#1-wire-the-display-and-touch) · [Firmware pin configuration](cuteOS.ino#L48-L106) · [Hardware reference](HARDWARE.md)
+
+The ILI9488 and XPT2046 share the SPI clock and data output from the ESP32-S3. Run both wires in each shared pair to the same GPIO. Each controller has its own chip select.
+
+```mermaid
+flowchart LR
+    subgraph ESP["ESP32-S3-N16R8"]
+        G40["GPIO 40"]
+        G39["GPIO 39"]
+        G38["GPIO 38"]
+        G1["GPIO 1"]
+        G3["GPIO 3"]
+        G41["GPIO 41"]
+        G42["GPIO 42"]
+    end
+    subgraph LCD["ILI9488 display"]
+        SCK["SCK"]
+        SDI["SDI / MOSI"]
+        CS["CS"]
+        RST["RESET"]
+        DC["DC / RS"]
+    end
+    subgraph TOUCH["XPT2046 touch"]
+        TCLK["T_CLK"]
+        TDIN["T_DIN"]
+        TDO["T_DO"]
+        TCS["T_CS"]
+    end
+    G40 --> SCK & TCLK
+    G39 --> SDI & TDIN
+    TDO --> G38
+    G1 --> CS
+    G3 --> RST
+    G41 --> DC
+    G42 --> TCS
+```
+
+The diagram shows GPIO signals. Wire power, ground, and backlight using the table below. Check the silkscreen and supply requirements on your specific board before connecting power.
 
 ---
 
@@ -15,11 +52,11 @@ All pin numbers below are **verified from source code** ([cuteOS.ino](cuteOS.ino
 | **GPIO 6** | `OUT_GPIOS[1]` | RGB & GPIO Studio | Digital Output (`LOW` at boot) | User-toggled 0V / 3.3V |
 | **GPIO 7** | `OUT_GPIOS[2]` | RGB & GPIO Studio | Digital Output (`LOW` at boot) | User-toggled 0V / 3.3V |
 | **GPIO 14** | `BACKLIGHT_PWM_PIN` | Display Backlight | PWM Output (`analogWrite`) | Optional hardware PWM; if display `LED` is tied to `3V3`, software dimming still works |
-| **GPIO 38** | `cfg.pin_miso` | Shared `SPI2_HOST` | `MISO` (Input) | Shared by ILI9488 config & XPT2046 `T_DO` |
+| **GPIO 38** | `cfg.pin_miso` | XPT2046 Touch | `MISO` (Input) | Connect to touch `T_DO`. The display uses write-only SPI. |
 | **GPIO 39** | `cfg.pin_mosi` | Shared `SPI2_HOST` | `MOSI` (Output) | Shared by ILI9488 `SDI` & XPT2046 `T_DIN` |
 | **GPIO 40** | `cfg.pin_sclk` | Shared `SPI2_HOST` | `SCLK` (Output) | Shared by ILI9488 `SCK` & XPT2046 `T_CLK` |
 | **GPIO 41** | `cfg.pin_dc` | ILI9488 Display | `DC / RS` (Output) | Data/Command select |
-| **GPIO 42** | `cfg.pin_cs` (Touch) | XPT2046 Touch | `T_CS` (Output, Active Low) | Touch Chip Select (`MTMS` JTAG pin; fine once JTAG disabled) |
+| **GPIO 42** | `cfg.pin_cs` (Touch) | XPT2046 Touch | `T_CS` (Output, Active Low) | Keep this pin free of external JTAG wiring. |
 | **GPIO 48** | `ONBOARD_RGB_PIN` | Onboard RGB LED | WS2812 Data (Output) | Built-in addressable LED on ESP32-S3 DevKit |
 | **-1 (Unwired)** | `cfg.pin_busy`, `cfg.pin_int` | Panel Busy / Touch IRQ | Not connected | Touch uses SPI polling instead of IRQ |
 
@@ -31,15 +68,15 @@ Standard 14-pin red SPI TFT + Touch modules expose pins 1–14 in the order belo
 
 | Header Pin | Silkscreen Name | Connected ESP32-S3 Pin | Verification |
 |---|---|---|---|
-| 1 | `VCC` | `3.3V` or `5V` (per module regulator) | Assumed (check J1 regulator on PCB; ESP32-S3 logic is 3.3V) |
-| 2 | `GND` | `GND` | Assumed |
+| 1 | `VCC` | Module-rated supply | Use 3.3 V if supported. Confirm the supply rating and use 3.3 V GPIO logic. |
+| 2 | `GND` | `GND` | Common ground between ESP32-S3 and display |
 | 3 | `CS` | **GPIO 1** | Verified in code |
 | 4 | `RESET` | **GPIO 3** | Verified in code |
-| 5 | `DC/RS` | **GPIO 41** | Verified in code |
+| 5 | `DC` / `RS` | **GPIO 41** | Verified in code |
 | 6 | `SDI (MOSI)` | **GPIO 39** | Verified in code |
 | 7 | `SCK` | **GPIO 40** | Verified in code |
-| 8 | `LED` | `3.3V` (always on) **or** **GPIO 14** (PWM) | Comment line 123 states `3V3` or GPIO 14 |
-| 9 | `SDO (MISO)` | **GPIO 38** (optional for display since `readable=false`) | Verified in code |
+| 8 | `LED` | Module-rated backlight supply or driver | For a 3.3 V-rated LED input, connect to `3V3`. For hardware PWM, use GPIO 14 to control a suitable driver. |
+| 9 | `SDO (MISO)` | Leave open | Display reads are disabled (`readable=false`). Leaving SDO open avoids contention with touch `T_DO`. |
 | 10 | `T_CLK` | **GPIO 40** (shared with `SCK`) | Verified in code |
 | 11 | `T_CS` | **GPIO 42** | Verified in code |
 | 12 | `T_DIN` | **GPIO 39** (shared with `MOSI`) | Verified in code |

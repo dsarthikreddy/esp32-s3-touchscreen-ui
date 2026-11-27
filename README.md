@@ -1,108 +1,134 @@
-# cuteOS v2.0 — ESP32-S3 Touchscreen Smart OS
+<div align="center">
 
-A standalone, glassy smart display firmware for the **ESP32-S3-N16R8** paired with a **3.5-inch 320x480 ILI9488 SPI TFT** and **XPT2046 resistive touchscreen**, built with **LovyanGFX**.
+# cuteOS
 
-> **Project Status:** Firmware compiles cleanly for `esp32:esp32:esp32s3` (16 MB Flash, OPI PSRAM). The owner tested the firmware on physical hardware. See [TEST_RESULTS.md](TEST_RESULTS.md) for build results and the hardware test matrix.
+**A glass-inspired touchscreen interface for the ESP32-S3**
 
----
+480 × 320 landscape · ILI9488 display · XPT2046 resistive touch · Arduino + LovyanGFX
 
-## Features
+[Open the firmware](cuteOS.ino) · [Wire the display](#1-wire-the-display-and-touch) · [Build and upload](#2-build-and-upload) · [Troubleshoot](#troubleshooting)
 
-- **Custom Boot Splash:** Vector-drawn circular twin-peak mountain emblem with sun, clouds, and progress bar (`drawBootSplash`).
-- **Pre-Baked Liquid Glass UI:** Uses an 8 MB OPI PSRAM wallpaper buffer (`bgSprite`) and two pre-blended glass buffers (`frostSprite`, `darkGlass`) rendered at 480x320 RGB565.
-- **Dynamic Island Hub:** Expandable top pill displaying Wi-Fi status, live temperature or active focus timer countdown, and quick-launch pills (`News`, `Map`, `Bright`, `Close`).
-- **Home Screen & Modular Widgets:** Live NTP clock (`HH:MM`), location card, 5-icon squircle bottom dock, and 2 customizable widget slots (`Weather`, `Area Map`, `Live News`, `RF Radar`, `GPIO 5-7`, `Focus Timer`, `ESP32 Core`) persisted in NVS flash.
-- **5-Tile Live News Reader:** Fetches BBC News RSS feeds across 5 topics (`Top`, `India`, `Tech`, `Science`, `Sport`), downloads story thumbnails into PSRAM sprites, and opens a full article summary view.
-- **Real Local Map (Street & Satellite):** Fetches 3x3 slippy map tiles at Zoom 17 from OpenStreetMap (PNG) or Esri World Imagery (JPEG), with an offline vector street fallback.
-- **Weather & 3-Day Forecast:** Queries Open-Meteo API for current temperature, humidity, wind speed, WMO weather condition, and 3-day high/low forecast.
-- **Control Center:** Interactive screen brightness slider (software RGB565 scaling + optional GPIO 14 PWM), Wi-Fi reconnect, Everest wallpaper download, map shortcut, RGB lamp cycle, RF scan, touch calibration, GPIO reset, and reboot.
-- **Built-in Tools & Apps:**
-  - **2.4 GHz Wi-Fi RF Radar:** Scans channels 1–13 and displays signal bars + top 4 SSIDs/RSSI.
-  - **ADC Oscilloscope:** Live 12-bit waveform plotter on `GPIO 4` (`0–3.3 V`) with hold/resume and core temperature readout.
-  - **RGB & GPIO Studio:** Controls the onboard WS2812 RGB LED (`GPIO 48`) with 7 presets + breathing mode, plus 3 digital outputs (`GPIO 5`, `GPIO 6`, `GPIO 7`).
-  - **Calculator:** 4-function floating-point calculator (`+`, `-`, `*`, `/`).
-  - **Focus Timer:** Circular ring gauge timer with `5 min`, `15 min`, and `25 min Pomodoro` presets.
-- **Persistent Touch Calibration:** 3-sample median filtering + EMA smoothing; calibration matrix stored permanently in ESP32 NVS (`Preferences`).
+</div>
 
 ---
 
-## Quick Start (Beginner Friendly)
+## 1. Wire the display and touch
 
-### 1. Prerequisites
-- **Hardware:** ESP32-S3-N16R8 (16 MB Flash, 8 MB Octal/OPI PSRAM) + 3.5" 320x480 ILI9488 SPI TFT with XPT2046 touch (14-pin red PCB module). See [HARDWARE.md](HARDWARE.md) and [PIN_MAPPING.md](PIN_MAPPING.md).
-- **Software:** [Arduino IDE 2.x](https://www.arduino.cc/en/software) (tested with bundled `arduino-cli` v1.5.1).
+**Hardware:** ESP32-S3-N16R8 development board (16 MB flash, 8 MB Octal PSRAM) and a 3.5-inch **SPI** ILI9488 display with an XPT2046 touch controller. Use a USB data cable and short jumper wires.
 
-### 2. Install Board Core & Libraries
-1. Open Arduino IDE -> **File -> Preferences -> Additional Boards Manager URLs**, add:
+Disconnect USB power before wiring. Match the **labels printed on your module** and use GPIO numbers on the ESP32-S3. Header order can vary between boards.
+
+| Display module label | ESP32-S3 connection | What it does |
+|---|---|---|
+| `VCC` | `3V3` if supported by the module | Display power. Check your board's rated supply before connecting it. |
+| `GND` | `GND` | Common ground |
+| `CS` | **GPIO 1** | Selects the display |
+| `RESET` / `RST` | **GPIO 3** | Resets the display |
+| `DC` / `RS` | **GPIO 41** | Selects data or command |
+| `SDI` / `MOSI` **and** `T_DIN` | **GPIO 39** | Shared SPI data from the ESP32-S3 |
+| `SCK` **and** `T_CLK` | **GPIO 40** | Shared SPI clock |
+| `T_CS` | **GPIO 42** | Selects the touch controller |
+| `T_DO` | **GPIO 38** | SPI data from the touch controller |
+| `LED` / `BL` | Module-rated backlight supply or driver | For a module with a 3.3 V-rated LED input, use `3V3`. The firmware can dim the image in software. |
+| `SDO` / `MISO` and `T_IRQ` | Leave open | The firmware writes to the display and polls touch over SPI. |
+
+**Before powering on:** Check that `CS` and `T_CS` go to separate GPIOs, `T_DO` goes to GPIO 38, and the ESP32-S3 and display share ground. ESP32-S3 signal pins use 3.3 V logic. Use a suitable backlight driver if you want PWM control from GPIO 14.
+
+[Full wiring diagram and optional GPIOs](PIN_MAPPING.md) · [Hardware and power details](HARDWARE.md)
+
+## 2. Build and upload
+
+### Get the complete sketch
+
+Clone into a folder named `cuteOS` so Arduino can match the folder with `cuteOS.ino`. These commands work in PowerShell, Bash, and Zsh with Git installed.
+
+```sh
+git clone https://github.com/dsarthikreddy/esp32-s3-touchscreen-ui.git cuteOS
+cd cuteOS
+```
+
+You can also use **Code → Download ZIP**, extract it, and rename the extracted folder to `cuteOS`. Keep both [cuteOS.ino](cuteOS.ino) and [secrets.example.h](secrets.example.h) in that folder. For manual copying, open each file on GitHub and use **Raw** to get the complete text.
+
+### Arduino IDE
+
+1. Install [Arduino IDE 2.x](https://www.arduino.cc/en/software). In **File → Preferences → Additional Boards Manager URLs**, paste:
+
    ```text
-   https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+   https://espressif.github.io/arduino-esp32/package_esp32_index.json
    ```
-2. Open **Tools -> Board -> Boards Manager**, search `esp32` by **Espressif Systems**, and install version **`2.0.17`** (verified version; see [DEPENDENCIES.md](DEPENDENCIES.md) regarding Core 3.x notes).
-3. Open **Tools -> Manage Libraries**, search `LovyanGFX` by **lovyan03**, and install version **`1.3.0`**.
 
-### 3. Configure Wi-Fi & Location Secrets
-1. Name the project folder `cuteOS` so Arduino can find `cuteOS.ino`. In that folder, copy `secrets.example.h` to `secrets.h`:
-   ```powershell
-   Copy-Item secrets.example.h secrets.h
-   ```
-2. Open `secrets.h` and enter your own 2.4 GHz Wi-Fi credentials (`SECRET_WIFI_SSID`, `SECRET_WIFI_PASS`), latitude/longitude (`SECRET_HOME_LAT`, `SECRET_HOME_LON`), area/city labels, and UTC offset (`SECRET_NTP_OFFSET_SEC`).
-3. **Never commit `secrets.h`**—it is excluded by `.gitignore`.
+2. In **Boards Manager**, install **esp32 by Espressif Systems 2.0.17**. In **Library Manager**, install **LovyanGFX by lovyan03 1.3.0**.
+3. Open `cuteOS.ino` and set these options under **Tools**.
 
-### 4. Select Exact Arduino IDE Board Settings
-Set these exact options under **Tools** before compiling or uploading:
+   | Setting | Value |
+   |---|---|
+   | Board | ESP32S3 Dev Module |
+   | Flash Size | 16MB (128Mb) |
+   | PSRAM | **OPI PSRAM** |
+   | Partition Scheme | Huge APP (3MB No OTA/1MB SPIFFS) |
+   | Flash Mode | QIO 80MHz |
+   | CPU Frequency | 240MHz (WiFi) |
 
-| Arduino IDE Setting | Required Value | Notes |
-|---|---|---|
-| **Board** | `ESP32S3 Dev Module` | `esp32:esp32:esp32s3` |
-| **PSRAM** | **`OPI PSRAM`** | **Mandatory** (`cuteOS` halts without 8 MB OPI PSRAM) |
-| **Flash Size** | `16MB (128Mb)` | Matches N16R8 module |
-| **Partition Scheme** | `Huge APP (3MB No OTA/1MB SPIFFS)` | Or `16M Flash (3MB APP/9.9MB FATFS)` |
-| **Flash Mode** | `QIO 80MHz` | Standard for N16R8 |
-| **CPU Frequency** | `240MHz (WiFi)` | Required for smooth UI & Wi-Fi |
-| **USB Mode** | `Hardware CDC and JTAG` | Or `USB-OTG` depending on board USB port |
-| **Upload Speed** | `921600` | Drop to `115200` if flashing fails |
+4. Select the board's port and click **Verify**, then **Upload**. Follow the touch targets on the first boot to save calibration.
 
-### 5. Compile & Upload
-- **Arduino IDE:** Open `cuteOS.ino`, select your COM port under **Tools -> Port**, and click **Upload**.
-- **Command Line (`arduino-cli`):**
-  ```powershell
-  arduino-cli compile --fqbn "esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=huge_app,PSRAM=opi,CPUFreq=240,FlashMode=qio" .
-  arduino-cli upload -p COMx --fqbn "esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=huge_app,PSRAM=opi,CPUFreq=240,FlashMode=qio" .
-  ```
-  *(Replace `COMx` with your ESP32-S3 serial port.)*
+<details>
+<summary>Build from the command line with Arduino CLI</summary>
 
----
+Run from the `cuteOS` sketch folder with `arduino-cli` on your PATH.
 
-## Navigation & Gestures
+On Linux, the ESP32 upload tool requires Python 3 and PySerial. If the build reports `No module named 'serial'`, install PySerial for the Python interpreter used by Arduino CLI.
 
-| From Screen | Gesture / Action | Destination |
-|---|---|---|
-| **Home** | Swipe Left -> Right | 5-Tile Live News Feed |
-| **Home** | Swipe Right -> Left | 4 Tech Tiles & Notifications |
-| **Home** | Swipe Down | Control Center (Brightness & Quick Actions) |
-| **Home** | Swipe Up | App Drawer (8 Squircle Icons) |
-| **Home** | Tap Dynamic Island | Expand Quick Hub (`News`, `Map`, `Bright`, `Close`) |
-| **Home** | Tap `+ Widgets` | Customize Top & Bottom Home Widgets |
-| **Sub-screens** | Swipe Down (or tap `< Home` / `< Apps`) | Return to Home or App Drawer |
-| **Article Reader** | Swipe Left / Right | Next / Previous Story |
+```sh
+arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+arduino-cli core install esp32:esp32@2.0.17 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+arduino-cli lib install LovyanGFX@1.3.0
+arduino-cli compile --fqbn esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=huge_app,PSRAM=opi,CPUFreq=240,FlashMode=qio .
+arduino-cli board list
+```
 
----
+Upload to the port shown by `board list`. Replace `COM3` with that port, such as `/dev/ttyUSB0` on Linux.
 
-## Documentation Index
+```sh
+arduino-cli upload --port COM3 --fqbn esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=huge_app,PSRAM=opi,CPUFreq=240,FlashMode=qio .
+```
 
-| File | Purpose |
+</details>
+
+### Enable live content
+
+Copy [secrets.example.h](secrets.example.h) to `secrets.h` beside the sketch. Set your **2.4 GHz Wi-Fi** network name and password, latitude and longitude in decimal degrees, location labels, and UTC offset in seconds. Upload again to apply the settings. Git ignores `secrets.h`.
+
+The example configuration is enough to compile and try the local interface. Live news, maps, weather, and time sync need Wi-Fi.
+
+## Explore the interface
+
+| From Home | Opens |
 |---|---|
-| [AI_CONTEXT.md](AI_CONTEXT.md) | Model-agnostic context for ChatGPT, Claude, Gemini, etc. |
-| [HANDOFF.md](HANDOFF.md) | Engineering handoff, code map, and next steps |
-| [GEMINI.md](GEMINI.md) | Gemini / Antigravity workspace guide |
-| [HARDWARE.md](HARDWARE.md) | MCU, display, touch, and peripheral hardware details |
-| [PIN_MAPPING.md](PIN_MAPPING.md) | Verified GPIO pinout and wiring table |
-| [DISPLAY_TOUCH.md](DISPLAY_TOUCH.md) | LovyanGFX SPI, ILI9488, XPT2046, calibration, and brightness |
-| [UI_DESIGN.md](UI_DESIGN.md) | Screen inventory, palette, typography, widgets, and gestures |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Software architecture, memory budget, and LVGL feasibility |
-| [DEPENDENCIES.md](DEPENDENCIES.md) | Core, library versions, APIs, and installation steps |
-| [DECISIONS.md](DECISIONS.md) | Architecture Decision Records (ADRs) |
-| [BUGS.md](BUGS.md) | Known issues, edge cases, and technical debt |
-| [TEST_RESULTS.md](TEST_RESULTS.md) | Compilation results and hardware test matrix |
-| [TASKS.md](TASKS.md) | Feature status and future roadmap |
-| [CHANGELOG.md](CHANGELOG.md) | Release and maintenance history |
+| Swipe right | Live news |
+| Swipe left | Device tiles and notifications |
+| Swipe down | Control Center and brightness |
+| Swipe up | App drawer with RF radar, oscilloscope, RGB/GPIO controls, calculator, and focus timer |
+| Tap the top pill | Wi-Fi, weather or timer status, and shortcuts |
+| Tap **+ Widgets** | Choose the two Home widgets |
+
+## Troubleshooting
+
+| Symptom | Check first |
+|---|---|
+| Upload port is missing | Use a USB data cable and check the correct connector for your board. |
+| White screen or no image | Check display power and backlight, then trace `CS`, `RESET`, `DC`, `SDI`, and `SCK`. |
+| Image works but touch fails | Trace all four touch wires: `T_CLK`, `T_CS`, `T_DIN`, and `T_DO`. Then rerun calibration from Control Center. |
+| **ENABLE OPI PSRAM!** | Select **OPI PSRAM** and confirm the board is the N16R8 variant. |
+| `LovyanGFX.hpp` missing | Install **LovyanGFX 1.3.0** in the IDE or CLI environment compiling the sketch. |
+| Live widgets show fallback content | Check `secrets.h`, 2.4 GHz Wi-Fi, and internet access. |
+
+## Project reference
+
+Owner-reported hardware testing covers display, touch, networking, and peripherals. See the [test matrix](TEST_RESULTS.md) for the full scope.
+
+| Looking for | Read |
+|---|---|
+| Code and configuration | [Firmware](cuteOS.ino) · [Configuration template](secrets.example.h) · [Dependencies](DEPENDENCIES.md) |
+| Hardware and display | [Pin map](PIN_MAPPING.md) · [Hardware](HARDWARE.md) · [Display and touch](DISPLAY_TOUCH.md) |
+| Design and architecture | [UI design](UI_DESIGN.md) · [Architecture](ARCHITECTURE.md) · [Design decisions](DECISIONS.md) |
+| Maintenance | [Known issues](BUGS.md) · [Roadmap](TASKS.md) · [Changelog](CHANGELOG.md) · [Handoff](HANDOFF.md) |

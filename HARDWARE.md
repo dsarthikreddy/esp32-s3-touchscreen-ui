@@ -32,7 +32,7 @@
 | **Display Interface** | 4-wire SPI (`SPI2_HOST`), `20 MHz` write / `16 MHz` read | Verified (`cfg.spi_3wire = false`, `readable = false`) |
 | **Touch Controller IC** | `XPT2046` resistive touch controller | Verified (`lgfx::Touch_XPT2046`) |
 | **Touch Interface** | Shared `SPI2_HOST` @ `1.5 MHz`, polled (`pin_int = -1`) | Verified (`bus_shared = true`) |
-| **Backlight Control** | Tied to `3.3V` (software RGB565 dimming) OR wired to `GPIO 14` (hardware PWM) | Verified in code comment (line 123); actual physical wire is **unverified** |
+| **Backlight Control** | Module-rated backlight supply with software RGB565 dimming, or a suitable PWM driver controlled by `GPIO 14` | Firmware supports both arrangements. Backlight wiring depends on the module. |
 
 > **Note on ILI9488 Color Depth over SPI:** Over 4-wire SPI, the `ILI9488` controller expects 18-bit (`RGB666`, 3 bytes/pixel) on the wire. `LovyanGFX` transparently converts the 16-bit (`RGB565`) PSRAM `canvas` sprite to SPI transactions during `pushSprite()`.
 
@@ -53,6 +53,6 @@
 
 ## 4. Power & Electrical Safety Notes (Important for Beginners)
 1. **3.3 V Logic Only:** All ESP32-S3 GPIOs (`GPIO 4, 5, 6, 7, 14, 38–42, 1, 3, 48`) are strictly **3.3 V**. Never feed `5 V` directly into `GPIO 4` (the ADC Oscilloscope pin) or you can permanently damage the chip.
-2. **Backlight Current:** A 3.5" TFT backlight draws ~60–120 mA. If you wire the display `LED` pin to `GPIO 14` instead of `3.3V`, use a transistor/MOSFET driver or verify your module's `LED` pin already has an onboard transistor—do not exceed ESP32-S3 GPIO max drive current (~20–40 mA).
+2. **Backlight Current:** Supply the backlight according to the module's specifications. For hardware PWM, use `GPIO 14` as the control signal for a suitable driver or the module's documented 3.3 V PWM input. Power the backlight from its rated supply.
 3. **USB Power:** Wi-Fi transmission peaks + TFT backlight + 8 MB OPI PSRAM require a clean 5 V USB supply (use a good quality data cable and direct motherboard/powered hub USB port).
 4. **SD Card Slot (on 14-pin Red PCB):** Many 14-pin red ILI9488 PCBs include a rear SD card header (`SD_CS`, `SD_MOSI`, `SD_MISO`, `SD_SCK`). It is **not used** in `cuteOS.ino`.

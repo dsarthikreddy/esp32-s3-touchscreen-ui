@@ -19,6 +19,7 @@ This document records firmware build checks and owner-reported testing on physic
 | **Clean-Clone Compile** | Isolated temp folder with `cuteOS.ino` + `secrets.example.h` (no `secrets.h`) | **PASS** (exit `0`) | Flash: `1,072,349` bytes (`34%` of `3,145,728`); Global SRAM: `50,756` bytes (`15%` of `327,680`, `276,924` free) |
 | **Static Secret & PII Scan** | All files excluding `secrets.h` | **PASS** (`0` matches) | Zero Wi-Fi passwords, SSIDs, coordinates, or personal location strings in tracked files |
 | **Connected Board Detection** | `arduino-cli board list` | **No boards found** | Confirmed no ESP32-S3 attached via USB during test session |
+| **Wiring Guide Update Build** | Linux, using the documented board settings with the example configuration and again with a local `secrets.h` copied from the template | **PASS** (both builds) | Flash: `1,072,237` bytes (34%). Global SRAM: `50,756` bytes (15%). |
 
 ---
 

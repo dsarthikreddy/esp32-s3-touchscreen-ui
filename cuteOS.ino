@@ -614,7 +614,10 @@ bool downloadBufferHTTPS(const String& url, uint8_t** outBuf, size_t* outLen, si
   }
   http.end();
 
-  if (received < 256) { free(buf); return false; }
+  if (received < 256 || (total >= 0 && received != (size_t)total)) {
+    free(buf);
+    return false;
+  }
   *outBuf = buf;
   *outLen = received;
   return true;
@@ -630,8 +633,9 @@ bool downloadRealEverestPhoto() {
     uint8_t* jpgBuf = NULL;
     size_t jpgLen = 0;
     if (downloadBufferHTTPS(String(urls[i]), &jpgBuf, &jpgLen, 160000)) {
-      bgSprite.drawJpg(jpgBuf, (uint32_t)jpgLen, 0, 0);
+      bool decoded = bgSprite.drawJpg(jpgBuf, (uint32_t)jpgLen, 0, 0);
       free(jpgBuf);
+      if (!decoded) continue;
       rebuildGlassBuffers();
       everestLoaded = true;
       return true;
@@ -764,10 +768,10 @@ bool fetchLiveNews(int topicIdx) {
       size_t iLen = 0;
       if (downloadBufferHTTPS(imgU, &iBuf, &iLen, 70000)) {
         bool isPng = (iLen > 4 && iBuf[0] == 0x89 && iBuf[1] == 0x50);
-        if (isPng) newsImg[found]->drawPng(iBuf, (uint32_t)iLen, 0, 0);
-        else       newsImg[found]->drawJpg(iBuf, (uint32_t)iLen, 0, 0);
+        newsItems[found].hasImg = isPng
+          ? newsImg[found]->drawPng(iBuf, (uint32_t)iLen, 0, 0)
+          : newsImg[found]->drawJpg(iBuf, (uint32_t)iLen, 0, 0);
         free(iBuf);
-        newsItems[found].hasImg = true;
       }
     }
     found++;
@@ -821,10 +825,11 @@ bool downloadAreaRealMap(bool useSatellite) {
       uint8_t* tBuf = NULL;
       size_t tLen = 0;
       if (downloadBufferHTTPS(url, &tBuf, &tLen, 120000)) {
-        if (useSatellite) mapSprite.drawJpg(tBuf, (uint32_t)tLen, drawX, drawY);
-        else              mapSprite.drawPng(tBuf, (uint32_t)tLen, drawX, drawY);
+        bool decoded = useSatellite
+          ? mapSprite.drawJpg(tBuf, (uint32_t)tLen, drawX, drawY)
+          : mapSprite.drawPng(tBuf, (uint32_t)tLen, drawX, drawY);
         free(tBuf);
-        okTiles++;
+        if (decoded) okTiles++;
       }
     }
   }
