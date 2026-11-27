@@ -13,6 +13,15 @@ Keep the companion's foreground connection service running for battery updates a
 
 On the display, swipe left from Home for **Music**. Play/pause, next/previous, ±15-second seek, and speed controls activate when the active Android player advertises those actions. The volume buttons adjust the phone's media volume. The Phone panel shows the system-reported battery percentage and whether the phone is plugged in.
 
+## Test notifications
+
+1. Connect to the display and open its **Phone** panel. Check that the phone battery percentage is visible.
+2. In the Android app, tap **Notification access** and turn on **cuteOS Companion**.
+3. Tap **Send test notification** and allow the app to post notifications if Android asks. **cuteOS test** should appear in the display's **Phone Notifications** list.
+4. Lock the phone and have someone send you a message. Make sure the message produces an Android notification. Check the display again.
+
+The updated companion sends album artwork from players that share it with Android. Start a track and open **Now Playing** on the display. The image can take a few seconds to arrive over Bluetooth. Tracks without shared artwork show a music note.
+
 ## Market panels
 
 On the phone, open **Market data keys** and enter a CoinGecko Demo key for crypto or a Twelve Data key for stocks. Keys are kept in the Android app's private settings and sent over HTTPS to their respective providers. The display receives the quote data over the paired BLE connection.

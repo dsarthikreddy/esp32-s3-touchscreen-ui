@@ -111,10 +111,12 @@ The example configuration is enough to compile and try the local interface. Live
 | Tap the top pill | Wi-Fi, weather or timer status, and shortcuts |
 | Tap **+ Widgets** | Choose the two Home widgets |
 
-### Phone, map, calendar, and photos
+### Controls, phone, and apps
 
-- **Phone and music** use the [Android companion app](companion/README.md) for pairing, phone notifications, battery, and media controls.
-- **Map** opens at the configured location. Tap **Hyderabad** to jump to the city and drag the map at zoom level 17. Nearby tiles are cached in PSRAM.
+- **Control Center** opens with a swipe down from Home. Tap **Resize**, choose a tile, and drag its marked bottom corner sideways or up and down. Tap **Done** to save the size. Each tile fits within its own space.
+- **Phone and music** use the [Android companion app](companion/README.md) for pairing, phone notifications, battery, and media controls. Music shows artwork when the active Android player shares it.
+- **Startup** displays Home before it connects to Wi-Fi. Weather and wallpaper load in the background, and news starts loading when opened. To measure a normal boot, open Arduino IDE's Serial Monitor at **115200 baud** and reset the board. The **Home drawn** and **Touch loop ready** lines report elapsed time. A first boot that needs touch calibration includes time for the user to tap the targets.
+- **Map** opens at the configured location. Tap **Load Map** to retrieve tiles, then **Hyderabad** to jump to the city. Drag at zoom level 17. Nearby tiles are cached in PSRAM.
 - **Calendar** shows the synced date and time. Single arrows change month and double arrows change year through 2099. **World Clock** uses the same internet time source for ten cities.
 - **Photos** reads JPEGs from `/photos` in LittleFS. It decodes the selected image directly from flash and keeps only the file list. See [photo setup](PHOTO_LIBRARY.md).
 

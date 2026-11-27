@@ -23,6 +23,11 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Rect;
 import android.media.AudioManager;
 import android.media.MediaMetadata;
 import android.media.session.MediaController;
@@ -34,6 +39,8 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.ParcelUuid;
 import android.os.SystemClock;
+import android.util.Base64;
+import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Arrays;
@@ -65,6 +72,15 @@ public final class LinkService extends Service {
     private int battery = -1;
     private boolean plugged;
     private String lastMedia = "";
+    private String lastArtworkKey = "";
+    private boolean lastArtworkAvailable;
+    private String artworkData = "";
+    private boolean artworkHeaderPending;
+    private int artworkOffset;
+    private int artworkRecordsSinceRead;
+    private static final int ART_SIZE = 72;
+    private static final int ART_MAX_BYTES = 2200;
+    private static final int ART_CHUNK = 176;
     private int lastBattery = -2;
     private boolean lastPlugged;
     private Markets markets;
@@ -74,6 +90,11 @@ public final class LinkService extends Service {
 
     private static UUID uuid(int index) {
         return UUID.fromString("702d201" + index + "-f69e-48e6-ab05-05ece629beb5");
+    }
+
+    static boolean isConnected() {
+        LinkService service = running;
+        return service != null && service.ready;
     }
 
     static void forward(String app, CharSequence title, CharSequence message) {
@@ -215,6 +236,9 @@ public final class LinkService extends Service {
         ready = busy = false;
         frame = null;
         pending.clear();
+        artworkHeaderPending = false;
+        artworkData = "";
+        artworkRecordsSinceRead = 0;
         latestMarketRequest = 0;
         offset = 0;
         status("Looking for your display");
@@ -229,6 +253,8 @@ public final class LinkService extends Service {
         ready = true;
         lastBattery = -2;
         lastMedia = "";
+        lastArtworkKey = "";
+        lastArtworkAvailable = false;
         status("Display connected");
         handler.postDelayed(pump, 500);
     }
@@ -297,7 +323,9 @@ public final class LinkService extends Service {
     private void pumpGatt() {
         if (!ready || busy) return;
         if (frame == null) frame = pending.pollFirst();
+        if (frame == null && artworkRecordsSinceRead < 3) frame = nextArtworkRecord();
         if (frame == null) {
+            artworkRecordsSinceRead = 0;
             busy = gatt.readCharacteristic(command);
         } else {
             sentBytes = Math.min(20, frame.length - offset);
@@ -332,8 +360,75 @@ public final class LinkService extends Service {
                 enqueue(media);
                 lastMedia = media;
             }
+            syncArtwork(meta);
         }
         handler.postDelayed(tick, 1000);
+    }
+
+    private void syncArtwork(MediaMetadata metadata) {
+        String key = metadata == null ? "" : metadata.getString(MediaMetadata.METADATA_KEY_MEDIA_ID) + "\n"
+                + metadata.getString(MediaMetadata.METADATA_KEY_TITLE) + "\n"
+                + metadata.getString(MediaMetadata.METADATA_KEY_ARTIST) + "\n"
+                + metadata.getString(MediaMetadata.METADATA_KEY_ALBUM);
+        Bitmap bitmap = null;
+        if (metadata != null) {
+            bitmap = metadata.getBitmap(MediaMetadata.METADATA_KEY_ART);
+            if (bitmap == null) bitmap = metadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART);
+            if (bitmap == null) bitmap = metadata.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON);
+        }
+        boolean available = bitmap != null && !bitmap.isRecycled();
+        if (key.equals(lastArtworkKey) && available == lastArtworkAvailable) return;
+        lastArtworkKey = key;
+        lastArtworkAvailable = available;
+        artworkData = available ? encodeArtwork(bitmap) : "";
+        artworkOffset = 0;
+        artworkHeaderPending = true;
+    }
+
+    private static String encodeArtwork(Bitmap bitmap) {
+        Bitmap image = Bitmap.createBitmap(ART_SIZE, ART_SIZE, Bitmap.Config.ARGB_8888);
+        Bitmap source = bitmap;
+        try {
+            if (bitmap.getConfig() == Bitmap.Config.HARDWARE) {
+                source = bitmap.copy(Bitmap.Config.ARGB_8888, false);
+                if (source == null) return "";
+            }
+            int crop = Math.min(source.getWidth(), source.getHeight());
+            int x = (source.getWidth() - crop) / 2;
+            int y = (source.getHeight() - crop) / 2;
+            Canvas canvas = new Canvas(image);
+            canvas.drawColor(Color.BLACK);
+            canvas.drawBitmap(source, new Rect(x, y, x + crop, y + crop),
+                    new Rect(0, 0, ART_SIZE, ART_SIZE), new Paint(Paint.FILTER_BITMAP_FLAG));
+            var output = new ByteArrayOutputStream(ART_MAX_BYTES);
+            for (int quality : new int[]{76, 59, 42, 25, 14}) {
+                output.reset();
+                if (image.compress(Bitmap.CompressFormat.JPEG, quality, output)
+                        && output.size() <= ART_MAX_BYTES) {
+                    return Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP);
+                }
+            }
+            return "";
+        } catch (IllegalArgumentException invalidBitmap) {
+            return "";
+        } finally {
+            image.recycle();
+            if (source != null && source != bitmap) source.recycle();
+        }
+    }
+
+    private byte[] nextArtworkRecord() {
+        String record;
+        if (artworkHeaderPending) {
+            artworkHeaderPending = false;
+            record = "A\t" + artworkData.length() + "\n";
+        } else if (artworkOffset < artworkData.length()) {
+            int next = Math.min(artworkOffset + ART_CHUNK, artworkData.length());
+            record = "I\t" + artworkOffset + "\t" + artworkData.substring(artworkOffset, next) + "\n";
+            artworkOffset = next;
+        } else return null;
+        artworkRecordsSinceRead++;
+        return record.getBytes(StandardCharsets.UTF_8);
     }
 
     private MediaController activePlayer() {

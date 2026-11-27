@@ -62,8 +62,8 @@ Compiled static memory footprint (see [TEST_RESULTS.md](TEST_RESULTS.md)):
 6. Detect RGB565 endianness (`spriteIsSwapped`) via `canvas.drawPixel(0, 0, TFT_RED)`.
 7. Generate procedural Everest fallback + pre-baked glass + offline map + offline news placeholders.
 8. Apply NVS touch calibration or launch interactive 4-corner calibration.
-9. Connect to Wi-Fi (`8s` timeout). If online: sync NTP, fetch Open-Meteo weather, download Everest photo (rebuilding glass buffers), download the visible OSM map tiles, and fetch 5 BBC RSS news items + images.
-10. Render `SCR_HOME` to `canvas` and push full frame.
+9. Draw Home with local artwork. Start Wi-Fi and resume a previously paired phone after the first frame.
+10. Fetch weather and the wallpaper on a network task. Load news when its screen opens and map tiles when requested in Map.
 
 ---
 

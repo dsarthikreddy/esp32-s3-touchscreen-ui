@@ -16,6 +16,7 @@
 #include <Preferences.h>
 #include <time.h>
 #include <math.h>
+#include <new>
 #include "PhoneLink.h"
 
 #if __has_include("secrets.h")
@@ -253,6 +254,7 @@ String topSSIDs[4]    = {"Tap Scan RF above", "", "", ""};
 int    topRSSI[4]     = {0, 0, 0, 0};
 int    topCh[4]       = {0, 0, 0, 0};
 int    foundNets      = 0;
+bool   scanningWifi   = false;
 
 const int SCOPE_PTS   = 80;
 int    scopeBuf[SCOPE_PTS];
@@ -461,128 +463,43 @@ void drawWrappedText(const String& text, int x, int y, int maxW, int maxLines, i
 }
 
 // ============================================================================
-// 6. WHITE MOUNTAIN BOOT LOGO WITH CLOUDS & GOLDEN SUN
+// 6. WALLPAPER, GLASS BUFFERS & HTTPS DOWNLOADS
 // ============================================================================
-void drawBootSplash(const char* statusText, int progressPct) {
-  for (int y = 0; y < 320; y += 2) {
-    float t = (float)y / 320.0f;
-    tft.fillRect(0, y, 480, 2, makeRgb((uint8_t)(14 + t * 30), (uint8_t)(78 + t * 86), (uint8_t)(186 + t * 56)));
-  }
-
-  int cx = 240, cy = 108;
-  tft.fillCircle(cx, cy + 4, 68, makeRgb(10, 44, 118));
-  tft.fillCircle(cx, cy, 66, makeRgb(24, 124, 240));
-  tft.drawCircle(cx, cy, 66, C_WHITE);
-  tft.drawCircle(cx, cy, 65, C_WHITE);
-
-  // Golden Sun with Rays
-  int sx = cx + 26, sy = cy - 28;
-  tft.fillCircle(sx, sy, 16, blend565(C_GOLD, makeRgb(24, 124, 240), 115));
-  tft.fillCircle(sx, sy, 12, C_GOLD);
-  for (int a = 0; a < 360; a += 45) {
-    float rad = a * 0.017453f;
-    int rx0 = sx + (int)(cosf(rad) * 15.0f), ry0 = sy + (int)(sinf(rad) * 15.0f);
-    int rx1 = sx + (int)(cosf(rad) * 20.0f), ry1 = sy + (int)(sinf(rad) * 20.0f);
-    tft.drawLine(rx0, ry0, rx1, ry1, C_GOLD);
-    tft.drawLine(rx0 + 1, ry0, rx1 + 1, ry1, C_GOLD);
-  }
-
-  // White Twin-Peak Mountain Logo
-  tft.fillTriangle(cx + 16, cy - 16, cx - 10, cy + 32, cx + 48, cy + 32, makeRgb(224, 238, 254));
-  tft.fillTriangle(cx - 10, cy - 36, cx - 50, cy + 32, cx + 30, cy + 32, C_WHITE);
-  tft.fillTriangle(cx - 10, cy - 36, cx - 2,  cy + 32, cx + 30, cy + 32, makeRgb(208, 228, 248));
-
-  // Fluffy White Clouds (Top-Left + Base)
-  tft.fillCircle(cx - 38, cy - 22, 9, C_WHITE);
-  tft.fillCircle(cx - 28, cy - 26, 11, C_WHITE);
-  tft.fillCircle(cx - 18, cy - 22, 8, C_WHITE);
-  tft.fillRoundRect(cx - 46, cy - 22, 36, 9, 4, C_WHITE);
-
-  tft.fillCircle(cx - 30, cy + 30, 13, C_WHITE);
-  tft.fillCircle(cx - 12, cy + 28, 16, C_WHITE);
-  tft.fillCircle(cx + 10, cy + 30, 15, C_WHITE);
-  tft.fillCircle(cx + 30, cy + 31, 12, C_WHITE);
-  tft.fillRoundRect(cx - 42, cy + 28, 84, 15, 7, C_WHITE);
-  tft.drawCircle(cx, cy, 66, C_WHITE);
-
-  tft.setFont(&fonts::FreeSerifBold24pt7b);
-  tft.setTextDatum(lgfx::middle_center);
-  tft.setTextColor(C_WHITE);
-  tft.drawString("cuteOS", 240, 208);
-
-  tft.setFont(&fonts::FreeSerif9pt7b);
-  tft.setTextColor(makeRgb(228, 242, 255));
-  tft.drawString(statusText, 240, 248);
-
-  tft.fillSmoothRoundRect(110, 270, 260, 12, 6, makeRgb(16, 62, 148));
-  int pw = constrain((progressPct * 256) / 100, 12, 256);
-  tft.fillSmoothRoundRect(112, 272, pw, 8, 4, C_WHITE);
+uint16_t spriteWord(uint16_t color) {
+  return spriteIsSwapped ? (uint16_t)((color << 8) | (color >> 8)) : color;
 }
 
-void updateBootProgress(const char* statusText, int progressPct) {
-  tft.fillRect(30, 234, 420, 28, makeRgb(36, 144, 228));
-  tft.setFont(&fonts::FreeSerif9pt7b);
-  tft.setTextDatum(lgfx::middle_center);
-  tft.setTextColor(C_WHITE);
-  tft.drawString(statusText, 240, 248);
-
-  tft.fillSmoothRoundRect(110, 270, 260, 12, 6, makeRgb(16, 62, 148));
-  int pw = constrain((progressPct * 256) / 100, 12, 256);
-  tft.fillSmoothRoundRect(112, 272, pw, 8, 4, C_WHITE);
-}
-
-// ============================================================================
-// 7. HTTPS DOWNLOADER, REAL MOUNT EVEREST PHOTO & GLASS BUFFERS
-// ============================================================================
 void rebuildGlassBuffers() {
-  for (int y = 0; y < 320; y += 4) {
-    for (int x = 0; x < 480; x += 4) {
-      uint16_t p1 = bgSprite.readPixel(x, y);
-      uint16_t p2 = bgSprite.readPixel((x + 3 < 480) ? x + 3 : x, (y + 3 < 320) ? y + 3 : y);
-      uint16_t blur = blend565(p1, p2, 128);
-      frostSprite.fillRect(x, y, 4, 4, blend565(C_WHITE, blur, 198));
-      darkGlass.fillRect(x, y, 4, 4, blend565(C_DARK_PILL, blur, 168));
+  const auto* background = (const uint16_t*)bgSprite.getBuffer();
+  auto* light = (uint16_t*)frostSprite.getBuffer();
+  auto* dark = (uint16_t*)darkGlass.getBuffer();
+  // A small cross blur keeps the wallpaper visible and avoids blocky edges.
+  for (int y = 0; y < 320; ++y) {
+    const auto* row = background + y * 480;
+    const auto* above = background + max(0, y - 3) * 480;
+    const auto* below = background + min(319, y + 3) * 480;
+    for (int x = 0; x < 480; ++x) {
+      uint16_t horizontal = blend565(spriteWord(row[max(0, x - 3)]),
+                                    spriteWord(row[min(479, x + 3)]), 128);
+      uint16_t vertical = blend565(spriteWord(above[x]), spriteWord(below[x]), 128);
+      uint16_t blur = blend565(horizontal, vertical, 128);
+      *light++ = spriteWord(blend565(C_WHITE, blur, 198));
+      *dark++ = spriteWord(blend565(C_DARK_PILL, blur, 144));
     }
   }
 }
 
-void buildPhotorealisticEverestFallback() {
-  for (int y = 0; y < 245; y++) {
-    float t = (float)y / 245.0f;
-    bgSprite.drawFastHLine(0, y, 480, makeRgb((uint8_t)(28 + t * 150), (uint8_t)(72 + t * 140), (uint8_t)(152 + t * 88)));
+void buildBootWallpaper() {
+  for (int y = 0; y < 320; ++y) {
+    bgSprite.drawFastHLine(0, y, 480, blend565(makeRgb(13, 21, 49), makeRgb(57, 134, 207), y * 255 / 319));
   }
-  for (int i = 0; i < 165; i++) {
-    int px = 248 + i, py = 54 + (int)(sinf(i * 0.04f) * 4.0f) + (i / 18), thick = 6 + (i / 14);
-    for (int dy = -thick; dy <= thick; dy++) {
-      int yy = py + dy;
-      if (yy < 0 || yy >= 240) continue;
-      float fade = (1.0f - (float)abs(dy) / (float)(thick + 1)) * (1.0f - (float)i / 170.0f);
-      uint8_t a = (uint8_t)(fade * 210.0f);
-      if (a > 8) bgSprite.drawPixel(px, yy, blend565(C_WHITE, bgSprite.readPixel(px, yy), a));
-    }
-  }
-  for (int x = 0; x < 480; x++) {
-    float yEv = 52.0f + fabsf((float)(x - 246)) * 0.88f + sinf(x * 0.09f) * 5.0f + cosf(x * 0.23f) * 2.5f;
-    float yL  = 112.0f + fabsf((float)(x - 90)) * 0.62f + sinf(x * 0.11f) * 6.0f;
-    float yR  = 118.0f + fabsf((float)(x - 410)) * 0.68f + cosf(x * 0.10f) * 5.0f;
-    int ridgeY = (int)fminf(yEv, fminf(yL, yR));
-    if (ridgeY > 235) ridgeY = 235;
-    int spineX = 246 + (int)(sinf((float)ridgeY * 0.08f) * 14.0f);
-    for (int y = ridgeY; y < 320; y++) {
-      float depth = (float)(y - ridgeY) / 195.0f;
-      if (depth > 1.0f) depth = 1.0f;
-      float noise = sinf(x * 0.16f + y * 0.11f) * cosf(x * 0.07f - y * 0.14f);
-      bool sunlit = (x < spineX + (y - ridgeY) / 5);
-      bool snow = (noise > -0.18f) || (y - ridgeY < 26);
-      uint16_t col = sunlit
-        ? (snow ? blend565(makeRgb(252,253,255), makeRgb(196,214,238), (uint8_t)(depth * 130))
-                : blend565(makeRgb(96,108,128),  makeRgb(52,62,82),    (uint8_t)(depth * 150)))
-        : (snow ? blend565(makeRgb(168,194,230), makeRgb(98,126,168),  (uint8_t)(depth * 160))
-                : blend565(makeRgb(38,48,72),    makeRgb(22,30,48),    (uint8_t)(depth * 150)));
-      if (y > 230) col = blend565(makeRgb(218, 228, 242), col, (uint8_t)(((y - 230) * 150) / 90));
-      bgSprite.drawPixel(x, y, col);
-    }
-  }
+  bgSprite.fillCircle(349, 78, 28, makeRgb(167, 224, 245));
+  bgSprite.fillTriangle(0, 270, 166, 115, 377, 320, makeRgb(40, 83, 134));
+  bgSprite.fillTriangle(66, 320, 269, 104, 480, 315, makeRgb(61, 102, 157));
+  bgSprite.fillTriangle(221, 155, 269, 104, 324, 159, makeRgb(187, 221, 242));
+  bgSprite.fillTriangle(0, 288, 103, 205, 252, 320, makeRgb(22, 45, 84));
+  bgSprite.fillTriangle(233, 320, 405, 187, 479, 240, makeRgb(30, 55, 100));
+  bgSprite.fillRect(0, 310, 480, 10, makeRgb(22, 37, 68));
   rebuildGlassBuffers();
 }
 
@@ -631,23 +548,13 @@ bool downloadBufferHTTPS(const String& url, uint8_t** outBuf, size_t* outLen, si
   return true;
 }
 
-bool downloadRealEverestPhoto() {
-  if (WiFi.status() != WL_CONNECTED) return false;
-  const char* urls[2] = {
+bool fetchEverestJpeg(uint8_t** data, size_t* length) {
+  static const char* const urls[] = {
     "https://commons.wikimedia.org/wiki/Special:FilePath/Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006.jpg?width=480",
     "https://commons.wikimedia.org/wiki/Special:FilePath/Mount_Everest_from_Kala_Patthar.jpg?width=480"
   };
-  for (int i = 0; i < 2; i++) {
-    uint8_t* jpgBuf = NULL;
-    size_t jpgLen = 0;
-    if (downloadBufferHTTPS(String(urls[i]), &jpgBuf, &jpgLen, 160000)) {
-      bool decoded = bgSprite.drawJpg(jpgBuf, (uint32_t)jpgLen, 0, 0);
-      free(jpgBuf);
-      if (!decoded) continue;
-      rebuildGlassBuffers();
-      everestLoaded = true;
-      return true;
-    }
+  for (const char* url : urls) {
+    if (downloadBufferHTTPS(url, data, length, 160000)) return true;
   }
   return false;
 }
@@ -730,62 +637,72 @@ void initOfflineNewsPlaceholders() {
   }
 }
 
-bool fetchLiveNews(int topicIdx) {
-  if (topicIdx < 0 || topicIdx >= NUM_NEWS_TOPICS) topicIdx = 0;
-  newsTopicIdx = topicIdx;
-  if (WiFi.status() != WL_CONNECTED) return false;
+struct NewsBatch {
+  NewsArticle articles[NUM_NEWS_ITEMS];
+  uint8_t* images[NUM_NEWS_ITEMS]{};
+  size_t lengths[NUM_NEWS_ITEMS]{};
+  int count = 0;
 
-  uint8_t* xmlBuf = NULL;
+  ~NewsBatch() {
+    for (auto* image : images) free(image);
+  }
+};
+
+static NewsBatch* fetchLiveNews(int topicIdx);
+static NewsBatch* fetchLiveNews(int topicIdx) {
+  uint8_t* xmlBuf = nullptr;
   size_t xmlLen = 0;
-  bool ok = downloadBufferHTTPS(String(TOPIC_URLS[topicIdx]), &xmlBuf, &xmlLen, 48000);
-  if (!ok) ok = downloadBufferHTTPS(String("https://feeds.bbci.co.uk/news/world/rss.xml"), &xmlBuf, &xmlLen, 48000);
-  if (!ok || !xmlBuf) return false;
+  bool ok = downloadBufferHTTPS(TOPIC_URLS[topicIdx], &xmlBuf, &xmlLen, 48000);
+  if (!ok) ok = downloadBufferHTTPS("https://feeds.bbci.co.uk/news/world/rss.xml", &xmlBuf, &xmlLen, 48000);
+  if (!ok) return nullptr;
 
   String xml;
-  xml.reserve(xmlLen + 1);
-  for (size_t i = 0; i < xmlLen; i++) xml += (char)xmlBuf[i];
+  if (!xml.concat((const char*)xmlBuf, xmlLen)) { free(xmlBuf); return nullptr; }
   free(xmlBuf);
-
-  uint16_t cols[5] = {C_BLUE, C_ROSE, C_TEAL, C_VIOLET, C_ORANGE};
-  int found = 0, searchPos = 0;
-
-  while (found < NUM_NEWS_ITEMS) {
-    int s = xml.indexOf("<item>", searchPos);
-    if (s < 0) break;
-    int e = xml.indexOf("</item>", s);
-    if (e < 0) break;
-    searchPos = e + 7;
-
-    String item  = xml.substring(s, e);
+  auto* batch = new (std::nothrow) NewsBatch;
+  if (!batch) return nullptr;
+  int searchPos = 0;
+  while (batch->count < NUM_NEWS_ITEMS) {
+    int start = xml.indexOf("<item>", searchPos);
+    if (start < 0) break;
+    int end = xml.indexOf("</item>", start);
+    if (end < 0) break;
+    searchPos = end + 7;
+    String item = xml.substring(start, end);
     String title = extractXmlTag(item, "<title>", "</title>");
     if (title.length() < 4) continue;
 
-    String desc = extractXmlTag(item, "<description>", "</description>");
-    String pub  = extractXmlTag(item, "<pubDate>", "</pubDate>");
-    if (pub.length() > 22) pub = pub.substring(0, 22);
-    String imgU = extractImageUrl(item);
-
-    newsItems[found].title   = title;
-    newsItems[found].desc    = (desc.length() > 0) ? desc : title;
-    newsItems[found].pubDate = (pub.length() > 0) ? pub : String(TOPIC_NAMES[topicIdx]);
-    newsItems[found].hasImg  = false;
-    drawNewsPlaceholder(found, cols[found]);
-
-    if (imgU.startsWith("http")) {
-      uint8_t* iBuf = NULL;
-      size_t iLen = 0;
-      if (downloadBufferHTTPS(imgU, &iBuf, &iLen, 70000)) {
-        bool isPng = (iLen > 4 && iBuf[0] == 0x89 && iBuf[1] == 0x50);
-        newsItems[found].hasImg = isPng
-          ? newsImg[found]->drawPng(iBuf, (uint32_t)iLen, 0, 0)
-          : newsImg[found]->drawJpg(iBuf, (uint32_t)iLen, 0, 0);
-        free(iBuf);
-      }
+    int index = batch->count++;
+    auto& article = batch->articles[index];
+    article.title = title;
+    article.desc = extractXmlTag(item, "<description>", "</description>");
+    if (!article.desc.length()) article.desc = title;
+    article.pubDate = extractXmlTag(item, "<pubDate>", "</pubDate>").substring(0, 22);
+    if (!article.pubDate.length()) article.pubDate = TOPIC_NAMES[topicIdx];
+    article.hasImg = false;
+    String imageUrl = extractImageUrl(item);
+    if (imageUrl.startsWith("https://")) {
+      downloadBufferHTTPS(imageUrl, &batch->images[index], &batch->lengths[index], 70000);
     }
-    found++;
   }
-  if (found > 0) { newsLoaded = true; return true; }
-  return false;
+  if (batch->count) return batch;
+  delete batch;
+  return nullptr;
+}
+
+static void applyNewsBatch(NewsBatch& batch);
+static void applyNewsBatch(NewsBatch& batch) {
+  initOfflineNewsPlaceholders();
+  for (int i = 0; i < batch.count; ++i) {
+    newsItems[i] = std::move(batch.articles[i]);
+    const uint8_t* image = batch.images[i];
+    size_t length = batch.lengths[i];
+    if (!image) continue;
+    bool png = length > 4 && image[0] == 0x89 && image[1] == 0x50;
+    newsItems[i].hasImg = png ? newsImg[i]->drawPng(image, length, 0, 0)
+                              : newsImg[i]->drawJpg(image, length, 0, 0);
+  }
+  newsLoaded = true;
 }
 
 // ============================================================================
@@ -926,6 +843,38 @@ void drawFrostGlassCard(int x, int y, int w, int h, int r, bool darkStyle, uint1
   restoreRoundedCorners(x, y, w, h, r);
   canvas.drawRoundRect(x, y, w, h, r, rimCol);
   if (w > 2 * r) canvas.drawFastHLine(x + r, y + 1, w - 2 * r, C_WHITE);
+}
+
+int roundedInset(int row, int height, int radius) {
+  int edge = min(row, height - 1 - row);
+  if (edge >= radius) return 0;
+  float dy = radius - edge - 0.5f;
+  return radius - (int)sqrtf(radius * radius - dy * dy);
+}
+
+void drawLiquidCard(int x, int y, int w, int h, int r, uint16_t accent) {
+  const auto* glass = (const uint16_t*)darkGlass.getBuffer();
+  auto* target = (uint16_t*)canvas.getBuffer();
+  for (int row = 0; row < h; ++row) {
+    int inset = roundedInset(row, h, r);
+    int offset = (y + row) * 480 + x + inset;
+    memcpy(target + offset, glass + offset, (w - 2 * inset) * sizeof(uint16_t));
+  }
+  canvas.drawRoundRect(x, y, w, h, r, blend565(C_WHITE, accent, 126));
+  canvas.drawFastHLine(x + r, y + 1, w - 2 * r, blend565(C_WHITE, accent, 190));
+  canvas.drawFastHLine(x + r, y + h - 2, w - 2 * r, blend565(accent, C_DARK_PILL, 112));
+}
+
+void drawLiquidHeader(const char* title, const char* action) {
+  drawLiquidCard(12, 6, 94, 28, 13, C_CYAN);
+  drawLiquidCard(116, 6, 248, 28, 13, C_BLUE);
+  drawLiquidCard(374, 6, 94, 28, 13, C_CYAN);
+  canvas.setFont(&fonts::FreeSansBold9pt7b);
+  canvas.setTextDatum(lgfx::middle_center);
+  canvas.setTextColor(C_WHITE);
+  canvas.drawString("< Home", 59, 20);
+  canvas.drawString(title, 240, 20);
+  canvas.drawString(action, 421, 20);
 }
 
 void drawAppleSquircle(int cx, int cy, int s, uint16_t colTop, uint16_t colBot) {
@@ -1360,58 +1309,133 @@ void drawNewsArticleScreen() {
   canvas.setTextColor(C_WHITE); canvas.drawString("Next >", 413, 288);
 }
 
-void drawBrightnessSlider(int x, int y, int w, int h) {
-  drawFrostGlassCard(x, y, w, h, 22, true, C_WHITE);
-  int fillW = constrain(((screenBrightness - 20) * (w - 8)) / 80, 48, w - 8);
-  canvas.fillSmoothRoundRect(x + 4, y + 4, fillW, h - 8, 18, C_GOLD);
-  canvas.fillSmoothRoundRect(x + 4, y + 4, fillW, (h - 8) / 2, 16, blend565(C_WHITE, C_GOLD, 90));
+constexpr int CONTROL_W_MIN = 82, CONTROL_W_MAX = 109;
+constexpr int CONTROL_H_MIN = 64, CONTROL_H_MAX = 94;
+uint8_t controlTileSizes[8][2] = {{106, 92}, {106, 92}, {106, 92}, {106, 92},
+                                  {106, 92}, {106, 92}, {106, 92}, {106, 92}};
+bool editingControls;
+bool controlSizeChanged;
+int selectedControl = 0;
+int resizingControl = -1;
+int resizeStartWidth, resizeStartHeight;
+unsigned long lastResizeFrame;
 
-  int sx = x + 26, sy = y + h / 2;
-  canvas.fillCircle(sx, sy, 6, C_DARK_PILL);
-  for (int a = 0; a < 360; a += 45) {
-    float rad = a * 0.017453f;
-    canvas.drawLine(sx + (int)(cosf(rad) * 8.0f), sy + (int)(sinf(rad) * 8.0f),
-                    sx + (int)(cosf(rad) * 12.0f), sy + (int)(sinf(rad) * 12.0f), C_DARK_PILL);
+void controlTileBounds(int i, int& x, int& y, int& w, int& h) {
+  x = 14 + i % 4 * 114;
+  y = 102 + i / 4 * 99;
+  w = controlTileSizes[i][0];
+  h = controlTileSizes[i][1];
+}
+
+int controlTileAt(int x, int y) {
+  for (int i = 0; i < 8; ++i) {
+    int left, top, width, height;
+    controlTileBounds(i, left, top, width, height);
+    if (x >= left && y >= top && x < left + width && y < top + height) return i;
   }
-  canvas.setFont(&fonts::FreeSerifBold12pt7b);
+  return -1;
+}
+
+void saveControlTileSizes() {
+  if (controlSizeChanged && prefs.begin("cuteos", false)) {
+    if (prefs.putBytes("tiles", controlTileSizes, sizeof(controlTileSizes)) == sizeof(controlTileSizes))
+      controlSizeChanged = false;
+    prefs.end();
+  }
+}
+
+void drawBrightnessSlider() {
+  drawLiquidCard(14, 42, 452, 51, 21, C_CYAN);
+  canvas.setFont(&fonts::FreeSansBold9pt7b);
   canvas.setTextDatum(lgfx::middle_left);
-  canvas.setTextColor(screenBrightness > 48 ? C_DARK_PILL : C_WHITE);
-  canvas.drawString("Screen Brightness", x + 48, y + h / 2);
+  canvas.setTextColor(C_WHITE);
+  canvas.drawString("Brightness", 31, 59);
   canvas.setTextDatum(lgfx::middle_right);
-  canvas.setTextColor(screenBrightness > 88 ? C_DARK_PILL : C_WHITE);
-  canvas.drawString(String(screenBrightness) + "%", x + w - 16, y + h / 2);
+  canvas.drawString(String(screenBrightness) + "%", 449, 59);
+  constexpr int x = 32, y = 79, width = 416;
+  canvas.fillRoundRect(x, y - 3, width, 6, 3, blend565(C_CYAN, C_DARK_PILL, 105));
+  int fill = (screenBrightness - 20) * (width - 2) / 80;
+  if (fill > 0) canvas.fillRoundRect(x, y - 3, fill, 6, 3, C_CYAN);
+  canvas.fillCircle(x + fill, y, 6, C_WHITE);
+}
+
+void drawControlGlyph(int i, int x, int y, uint16_t ink) {
+  switch (i) {
+    case 0:
+      canvas.drawArc(x, y + 6, 11, 9, 218, 322, ink);
+      canvas.drawArc(x, y + 6, 7, 5, 218, 322, ink);
+      canvas.fillCircle(x, y + 5, 2, ink);
+      break;
+    case 1:
+      canvas.drawRoundRect(x - 10, y - 8, 20, 16, 3, ink);
+      canvas.fillTriangle(x - 8, y + 5, x - 2, y - 3, x + 5, y + 5, ink);
+      canvas.fillCircle(x + 5, y - 4, 2, ink);
+      break;
+    case 2:
+      canvas.drawCircle(x, y - 3, 6, ink);
+      canvas.drawLine(x - 5, y + 1, x, y + 9, ink);
+      canvas.drawLine(x + 5, y + 1, x, y + 9, ink);
+      canvas.fillCircle(x, y - 3, 2, ink);
+      break;
+    case 3:
+      canvas.drawCircle(x - 3, y - 2, 6, ink);
+      canvas.drawCircle(x + 3, y - 2, 6, ink);
+      canvas.drawCircle(x, y + 3, 6, ink);
+      break;
+    case 4:
+      for (int b = 0; b < 4; ++b) canvas.fillRoundRect(x - 9 + b * 5, y + 6 - (b + 1) * 4, 3, (b + 1) * 4, 1, ink);
+      break;
+    case 5:
+      canvas.drawCircle(x, y, 8, ink);
+      canvas.drawFastHLine(x - 11, y, 23, ink);
+      canvas.drawFastVLine(x, y - 11, 23, ink);
+      break;
+    case 6:
+      canvas.drawRoundRect(x - 6, y - 7, 12, 14, 2, ink);
+      for (int p = -4; p <= 4; p += 4) canvas.drawFastHLine(x - 10, y + p, 21, ink);
+      break;
+    case 7:
+      canvas.drawArc(x, y + 1, 9, 7, 315, 585, ink);
+      canvas.drawFastVLine(x, y - 11, 10, ink);
+      break;
+  }
+}
+
+void drawControlTile(int i) {
+  int x, y, w, h;
+  controlTileBounds(i, x, y, w, h);
+  const char* labels[] = {"Wi-Fi", "Wallpaper", "Map", "Light", "Wi-Fi Scan", "Touch Setup", "Reset Pins", "Restart"};
+  String scanCount = scanningWifi ? String("Scanning...") : String(foundNets) + " found";
+  const char* details[] = {wifiOnline ? "Connected" : "Connect", everestLoaded ? "Refresh photo" : "Load photo",
+    mapSatellite ? "Satellite" : "Street map", "Change color", scanCount.c_str(), "Calibrate", "All off", "Reboot"};
+  uint16_t accents[] = {C_CYAN, C_TEAL, C_GREEN, C_VIOLET, C_CYAN, C_GOLD, C_BLUE, C_ROSE};
+  bool selected = editingControls && i == selectedControl;
+  drawLiquidCard(x, y, w, h, min(26, h / 3), selected ? C_WHITE : accents[i]);
+  int center = x + w / 2;
+  int iconY = y + h / 4;
+  drawControlGlyph(i, center, iconY, blend565(C_WHITE, accents[i], 155));
+  canvas.setFont(&fonts::Font2);
+  canvas.setTextDatum(lgfx::middle_center);
+  canvas.setTextColor(C_WHITE);
+  canvas.drawString(labels[i], center, y + h / 2 + 6);
+  canvas.setTextColor(makeRgb(185, 219, 239));
+  canvas.drawString(details[i], center, y + h - 12);
+  if (selected) {
+    canvas.fillCircle(x + w - 10, y + h - 11, 8, C_DARK_PILL);
+    canvas.drawLine(x + w - 15, y + h - 8, x + w - 7, y + h - 16, C_WHITE);
+    canvas.drawLine(x + w - 12, y + h - 7, x + w - 6, y + h - 13, C_CYAN);
+  }
 }
 
 void drawControlScreen() {
-  drawSubHeader("CONTROL CENTER", "< Home", "cuteOS", C_BLUE);
-  drawBrightnessSlider(14, 42, 452, 50);
-
-  char rfSub[20];
-  snprintf(rfSub, sizeof(rfSub), "%d Found", foundNets);
-  String wifiSub = wifiOnline ? (String(WIFI_SSID) + " Live") : String("Reconnect");
-  const char* titles[8] = {"Wi-Fi", "Everest BG", SECRET_MAP_TILE_LBL, "RGB Lamp", "RF Scan", "Calib Touch", "GPIO Reset", "Reboot OS"};
-  const char* subs[8]   = {
-    wifiSub.c_str(),
-    everestLoaded ? "Real Photo" : "Fetch Photo",
-    mapSatellite ? "Satellite" : "Street View",
-    rgbBreathing ? "Breathing" : "Tap Cycle",
-    rfSub, "Save Flash", "All LOW", "Restart"
-  };
-  uint16_t bgs[8] = {wifiOnline ? C_BLUE : C_WHITE, everestLoaded ? C_TEAL : C_WHITE, C_GREEN, C_ROSE, C_VIOLET, C_ORANGE, C_WHITE, C_RED};
-  bool darkText[8] = {!wifiOnline, !everestLoaded, false, false, false, false, true, false};
-
-  for (int i = 0; i < 8; i++) {
-    int c = i % 4, r = i / 4, x = 14 + c * 115, y = 104 + r * 106;
-    drawCleanCard(x, y, 106, 96, 22, bgs[i], darkText[i] ? C_BORDER : C_WHITE);
-    canvas.fillCircle(x + 53, y + 26, 13, darkText[i] ? C_TINT_BLUE : blend565(C_WHITE, bgs[i], 75));
-    canvas.fillCircle(x + 53, y + 26, 5,  darkText[i] ? C_BLUE : C_WHITE);
-    canvas.setFont(&fonts::FreeSerifBold9pt7b);
+  drawLiquidHeader("Control Center", editingControls ? "Done" : "Resize");
+  drawBrightnessSlider();
+  for (int i = 0; i < 8; ++i) drawControlTile(i);
+  if (editingControls) {
+    canvas.setFont(&fonts::Font2);
     canvas.setTextDatum(lgfx::middle_center);
-    canvas.setTextColor(darkText[i] ? C_INK : C_WHITE);
-    canvas.drawString(titles[i], x + 53, y + 58);
-    canvas.setFont(&fonts::FreeSerif9pt7b);
-    canvas.setTextColor(darkText[i] ? C_INK_SUB : C_SNOW);
-    canvas.drawString(subs[i], x + 53, y + 79);
+    canvas.setTextColor(C_WHITE);
+    canvas.drawString("Tap a tile, then drag its bottom corner", 240, 308);
   }
 }
 
@@ -1450,7 +1474,8 @@ void drawTilesScreen() {
   char titleBuf[28];
   if (currentTile == 3) snprintf(titleBuf, sizeof(titleBuf), "NOTIFICATIONS");
   else                  snprintf(titleBuf, sizeof(titleBuf), "TECH TILE %d / %d", currentTile + 1, NUM_TILES);
-  drawSubHeader(titleBuf, "< Home", (currentTile == 3) ? "Clear All" : "Next >", C_BLUE);
+  if (currentTile == 1) drawLiquidHeader("Wi-Fi Nearby", "Next >");
+  else drawSubHeader(titleBuf, "< Home", (currentTile == 3) ? "Clear All" : "Next >", C_BLUE);
 
   if (currentTile == 0) {
     drawModularWidget(14, 44, 240, 242, W_MINIMAP);
@@ -1465,18 +1490,30 @@ void drawTilesScreen() {
     canvas.setTextColor(C_INK_SUB); canvas.drawString(wCond, 365, 214);
     canvas.setTextColor(C_ORANGE);  canvas.drawString(String("H:") + String(fHigh[0]) + "  L:" + String(fLow[0]) + " C", 365, 248);
   } else if (currentTile == 1) {
-    drawCleanCard(14, 44, 452, 242, 24, C_WHITE, C_BORDER);
-    canvas.setFont(&fonts::FreeSerifBold12pt7b);
-    canvas.setTextDatum(lgfx::middle_left);  canvas.setTextColor(C_INK);   canvas.drawString("2.4 GHz Wi-Fi RF Spectrum", 30, 72);
-    canvas.setFont(&fonts::FreeSerifBold9pt7b);
-    canvas.setTextDatum(lgfx::middle_right); canvas.setTextColor(C_GREEN); canvas.drawString(String(foundNets) + " Networks", 448, 72);
-    uint16_t barCols[5] = {C_BLUE, C_TEAL, C_GREEN, C_ORANGE, C_ROSE};
-    for (int ch = 1; ch <= 13; ch++) {
-      int bh = constrain(chStrength[ch] * 2, 8, 150), bx = 28 + (ch - 1) * 33;
-      canvas.fillSmoothRoundRect(bx, 250 - bh, 22, bh, 8, barCols[(ch - 1) % 5]);
-      canvas.setFont(&fonts::FreeSerif9pt7b);
-      canvas.setTextDatum(lgfx::middle_center); canvas.setTextColor(C_INK_SUB); canvas.drawString(String(ch), bx + 11, 266);
+    drawLiquidCard(14, 44, 452, 241, 27, C_CYAN);
+    canvas.setFont(&fonts::FreeSansBold9pt7b);
+    canvas.setTextDatum(lgfx::middle_left);
+    canvas.setTextColor(C_WHITE);
+    canvas.drawString(String(foundNets) + " Wi-Fi networks found", 31, 68);
+    canvas.setTextDatum(lgfx::middle_right);
+    canvas.setTextColor(makeRgb(166, 225, 240));
+    canvas.drawString(scanningWifi ? "Scanning..." : "Tap to scan", 449, 68);
+    for (int y : {117, 157, 197, 238}) canvas.drawFastHLine(29, y, 422, makeRgb(71, 96, 127));
+    canvas.setFont(&fonts::Font2);
+    canvas.setTextDatum(lgfx::middle_center);
+    for (int ch = 1; ch <= 13; ++ch) {
+      int bx = 31 + (ch - 1) * 33;
+      if (chStrength[ch]) {
+        int height = max(5, chStrength[ch] * 125 / 95);
+        uint16_t fill = blend565(C_TEAL, C_BLUE, chStrength[ch] * 255 / 95);
+        canvas.fillSmoothRoundRect(bx, 238 - height, 20, height, min(10, height / 2), fill);
+        if (height > 12) canvas.drawFastHLine(bx + 7, 242 - height, 6, C_CYAN);
+      } else canvas.fillCircle(bx + 10, 237, 2, C_BORDER);
+      canvas.setTextColor(C_WHITE);
+      canvas.drawNumber(ch, bx + 10, 253);
     }
+    canvas.setTextColor(makeRgb(185, 219, 239));
+    canvas.drawString("Wi-Fi channels 1-13   |   Taller bars mean stronger signals", 240, 273);
   } else if (currentTile == 2) {
     drawCleanCard(14, 44, 452, 108, 24, C_WHITE, C_BORDER);
     canvas.setFont(&fonts::FreeSerifBold12pt7b);
@@ -1551,7 +1588,7 @@ void drawAppMap() {
   // Rounded glass controls with the map visible through the tint.
   const int starts[] = {12, 179, 354};
   const int widths[] = {88, 122, 114};
-  const char* labels[] = {"< Home", "Hyderabad", mapSatellite ? "Street View" : "Satellite"};
+  const char* labels[] = {"< Home", mapLoaded ? "Hyderabad" : "Load Map", mapSatellite ? "Street View" : "Satellite"};
   canvas.setFont(&fonts::FreeSerifBold9pt7b);
   canvas.setTextDatum(lgfx::middle_center);
   for (int i = 0; i < 3; ++i) {
@@ -1729,8 +1766,17 @@ float extractJsonNum(const String& json, const String& key, int startPos) {
   return json.substring(idx, end).toFloat();
 }
 
-void fetchLocalWeather() {
-  if (WiFi.status() != WL_CONNECTED) return;
+struct WeatherBatch {
+  int temperature, humidity, code, wind;
+  bool current = false;
+  bool forecast = false;
+  int highs[3], lows[3], codes[3];
+};
+
+static WeatherBatch* fetchLocalWeather();
+static WeatherBatch* fetchLocalWeather() {
+  auto* batch = new (std::nothrow) WeatherBatch{};
+  if (!batch) return nullptr;
   WiFiClientSecure client; client.setInsecure();
   HTTPClient http;
   String url = String("https://api.open-meteo.com/v1/forecast?latitude=") + String(HOME_LAT, 5) +
@@ -1738,16 +1784,16 @@ void fetchLocalWeather() {
                "&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m"
                "&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=4";
   http.setTimeout(5000);
-  if (!http.begin(client, url)) return;
+  if (!http.begin(client, url)) { delete batch; return nullptr; }
   if (http.GET() == 200) {
     String payload = http.getString();
     int curPos = payload.indexOf("\"current\"");
     if (curPos > 0) {
-      wTemp = (int)roundf(extractJsonNum(payload, "\"temperature_2m\"", curPos));
-      wHum  = (int)roundf(extractJsonNum(payload, "\"relative_humidity_2m\"", curPos));
-      wCode = (int)roundf(extractJsonNum(payload, "\"weather_code\"", curPos));
-      wWind = (int)roundf(extractJsonNum(payload, "\"wind_speed_10m\"", curPos));
-      wCond = wmoToText(wCode);
+      batch->current = true;
+      batch->temperature = (int)roundf(extractJsonNum(payload, "\"temperature_2m\"", curPos));
+      batch->humidity = (int)roundf(extractJsonNum(payload, "\"relative_humidity_2m\"", curPos));
+      batch->code = (int)roundf(extractJsonNum(payload, "\"weather_code\"", curPos));
+      batch->wind = (int)roundf(extractJsonNum(payload, "\"wind_speed_10m\"", curPos));
     }
     int dailyPos = payload.indexOf("\"daily\"");
     if (dailyPos > 0) {
@@ -1758,23 +1804,25 @@ void fetchLocalWeather() {
         String sMax = payload.substring(maxPos + 22, payload.indexOf(']', maxPos));
         String sMin = payload.substring(minPos + 22, payload.indexOf(']', minPos));
         String sWc  = payload.substring(wcPos + 16,  payload.indexOf(']', wcPos));
+        batch->forecast = true;
         int p1 = 0, p2 = 0, p3 = 0;
         for (int k = 0; k < 4; k++) {
           int c1 = sMax.indexOf(',', p1), c2 = sMin.indexOf(',', p2), c3 = sWc.indexOf(',', p3);
           float vm = sMax.substring(p1, (c1 < 0) ? (int)sMax.length() : c1).toFloat();
           float vn = sMin.substring(p2, (c2 < 0) ? (int)sMin.length() : c2).toFloat();
           int vw   = sWc.substring(p3,  (c3 < 0) ? (int)sWc.length()  : c3).toInt();
-          if (k >= 1 && k <= 3) { fHigh[k - 1] = (int)roundf(vm); fLow[k - 1] = (int)roundf(vn); fCode[k - 1] = vw; }
+          if (k >= 1 && k <= 3) { batch->highs[k - 1] = (int)roundf(vm); batch->lows[k - 1] = (int)roundf(vn); batch->codes[k - 1] = vw; }
           if (c1 >= 0) p1 = c1 + 1;
           if (c2 >= 0) p2 = c2 + 1;
           if (c3 >= 0) p3 = c3 + 1;
         }
       }
     }
-    lastWeatherFetch = millis();
-    uiDirty = true;
   }
   http.end();
+  if (batch->current || batch->forecast) return batch;
+  delete batch;
+  return nullptr;
 }
 
 void updateTimeFromNtp() {
@@ -1791,15 +1839,159 @@ void updateTimeFromNtp() {
   }
 }
 
-void runRFSpectrumScan() {
-  showToast("Scanning 2.4 GHz RF...", 1800);
-  renderCurrentScreen(true);
+// Only the UI loop updates sprites and screen state. The worker returns bounded
+// data buffers, so a slow internet request cannot hold up touch input.
+enum class FetchKind : uint8_t { Weather, Wallpaper, News };
+struct FetchRequest { FetchKind kind; int topic; bool announce; };
+struct FetchResult { FetchRequest request; void* data; size_t length; };
+
+QueueHandle_t fetchRequests;
+QueueHandle_t fetchResults;
+bool fetchPending[3]{};
+bool initialNewsRequested = false;
+
+void fetchWorker(void*) {
+  FetchRequest request;
+  while (xQueueReceive(fetchRequests, &request, portMAX_DELAY) == pdPASS) {
+    FetchResult result{request, nullptr, 0};
+    if (WiFi.status() == WL_CONNECTED) {
+      switch (request.kind) {
+        case FetchKind::Weather: result.data = fetchLocalWeather(); break;
+        case FetchKind::Wallpaper: {
+          uint8_t* jpg = nullptr;
+          fetchEverestJpeg(&jpg, &result.length);
+          result.data = jpg;
+          break;
+        }
+        case FetchKind::News: result.data = fetchLiveNews(request.topic); break;
+      }
+    }
+    xQueueSend(fetchResults, &result, portMAX_DELAY);
+  }
+}
+
+static bool requestFetch(FetchKind kind, int topic, bool announce);
+static bool requestFetch(FetchKind kind, int topic, bool announce) {
+  if (!fetchRequests || WiFi.status() != WL_CONNECTED) {
+    if (announce) showToast("Connect to Wi-Fi first", 1600);
+    return false;
+  }
+  auto& pending = fetchPending[(int)kind];
+  if (pending) {
+    if (announce) showToast("Already loading", 1600);
+    return false;
+  }
+  FetchRequest request{kind, topic, announce};
+  if (xQueueSend(fetchRequests, &request, 0) != pdPASS) return false;
+  pending = true;
+  if (kind == FetchKind::Weather) lastWeatherFetch = millis();
+  if (kind == FetchKind::News) initialNewsRequested = true;
+  if (announce) showToast("Loading in the background...", 1500);
+  return true;
+}
+
+void consumeFetchResults() {
+  if (!fetchResults) return;
+  FetchResult result;
+  while (xQueueReceive(fetchResults, &result, 0) == pdPASS) {
+    auto kind = result.request.kind;
+    fetchPending[(int)kind] = false;
+    bool success = result.data != nullptr;
+    switch (kind) {
+      case FetchKind::Weather: {
+        auto* batch = (WeatherBatch*)result.data;
+        if (batch && batch->current) {
+          wTemp = batch->temperature; wHum = batch->humidity;
+          wCode = batch->code; wWind = batch->wind; wCond = wmoToText(wCode);
+        }
+        if (batch && batch->forecast) {
+          for (int i = 0; i < 3; ++i) {
+            fHigh[i] = batch->highs[i]; fLow[i] = batch->lows[i]; fCode[i] = batch->codes[i];
+          }
+        }
+        delete batch;
+        break;
+      }
+      case FetchKind::Wallpaper: {
+        auto* jpeg = (uint8_t*)result.data;
+        if (jpeg) {
+          success = bgSprite.drawJpg(jpeg, result.length, 0, 0);
+          if (success) {
+            rebuildGlassBuffers();
+            everestLoaded = true;
+          }
+          free(jpeg);
+        }
+        break;
+      }
+      case FetchKind::News: {
+        auto* batch = (NewsBatch*)result.data;
+        if (batch) {
+          newsTopicIdx = result.request.topic;
+          applyNewsBatch(*batch);
+        }
+        delete batch;
+        break;
+      }
+    }
+    if (result.request.announce) showToast(success ? "Updated" : "Could not load. Try again.", 1700);
+    if (success) uiDirty = true;
+  }
+}
+
+void startInternet() {
+  fetchRequests = xQueueCreate(3, sizeof(FetchRequest));
+  fetchResults = xQueueCreate(3, sizeof(FetchResult));
+  if (!fetchRequests || !fetchResults ||
+      xTaskCreatePinnedToCore(fetchWorker, "internet", 8192, nullptr, 1, nullptr, 0) != pdPASS) {
+    if (fetchRequests) vQueueDelete(fetchRequests);
+    if (fetchResults) vQueueDelete(fetchResults);
+    fetchRequests = fetchResults = nullptr;
+  }
   WiFi.mode(WIFI_STA);
-  int n = WiFi.scanNetworks(false, false, false, 120);
-  foundNets = (n > 0) ? n : 0;
-  for (int i = 0; i < 14; i++) chStrength[i] = 0;
-  for (int i = 0; i < 4; i++) { topSSIDs[i] = ""; topRSSI[i] = 0; topCh[i] = 0; }
-  for (int i = 0; i < foundNets; i++) {
+  WiFi.setAutoReconnect(true);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+}
+
+void pollInternet() {
+  static unsigned long lastStatus;
+  if (millis() - lastStatus < 250) return;
+  lastStatus = millis();
+  bool connected = WiFi.status() == WL_CONNECTED;
+  if (connected != wifiOnline) {
+    wifiOnline = connected;
+    uiDirty = true;
+    if (connected) {
+      configTime(SECRET_NTP_OFFSET_SEC, 0, "pool.ntp.org", "time.google.com");
+      requestFetch(FetchKind::Weather, 0, false);
+      if (!everestLoaded) requestFetch(FetchKind::Wallpaper, 0, false);
+    }
+  }
+  if (!connected) return;
+  if (millis() - lastWeatherFetch >= 900000UL) requestFetch(FetchKind::Weather, 0, false);
+  if (currentScreen == SCR_NEWS && !initialNewsRequested) requestFetch(FetchKind::News, newsTopicIdx, false);
+}
+
+void runRFSpectrumScan() {
+  if (scanningWifi) return;
+  scanningWifi = WiFi.scanNetworks(true, false, false, 120) == WIFI_SCAN_RUNNING;
+  showToast(scanningWifi ? "Scanning nearby Wi-Fi..." : "Wi-Fi scan could not start", 1500);
+  uiDirty = true;
+}
+
+void pollWifiScan() {
+  if (!scanningWifi) return;
+  int count = WiFi.scanComplete();
+  if (count == WIFI_SCAN_RUNNING) return;
+  scanningWifi = false;
+  if (count < 0) {
+    showToast("Wi-Fi scan failed. Try again.", 1500);
+    return;
+  }
+  foundNets = count;
+  for (int i = 0; i < 14; ++i) chStrength[i] = 0;
+  for (int i = 0; i < 4; ++i) { topSSIDs[i] = ""; topRSSI[i] = 0; topCh[i] = 0; }
+  for (int i = 0; i < foundNets; ++i) {
     int ch = constrain(WiFi.channel(i), 1, 13), rssi = WiFi.RSSI(i);
     int strength = constrain(100 + rssi, 8, 95);
     if (strength > chStrength[ch]) chStrength[ch] = strength;
@@ -1807,7 +1999,7 @@ void runRFSpectrumScan() {
   }
   if (foundNets == 0) topSSIDs[0] = "No 2.4 GHz networks detected";
   WiFi.scanDelete();
-  showToast(String("RF Scan: ") + String(foundNets) + " networks", 1400);
+  showToast(String(foundNets) + " Wi-Fi networks found", 1400);
   uiDirty = true;
 }
 
@@ -1847,6 +2039,10 @@ void renderCurrentScreen(bool pushNow) {
 void switchScreen(int next) {
   currentScreen = next;
   if (next == SCR_MARKETS) loadMarketPage();
+  if (next != SCR_CONTROL && editingControls) {
+    editingControls = false;
+    saveControlTileSizes();
+  }
   islandExpanded = false;
   renderCurrentScreen(true);
 }
@@ -1952,19 +2148,12 @@ void handleTap(int x, int y) {
   if (currentScreen == SCR_NEWS) {
     if (inRect(x, y, 6, 2, 104, 36)) { switchScreen(SCR_HOME); return; }
     if (inRect(x, y, 366, 2, 108, 36)) {
-      showToast(String("Loading ") + TOPIC_NAMES[newsTopicIdx] + " News...", 3500);
-      renderCurrentScreen(true);
-      showToast(fetchLiveNews(newsTopicIdx) ? "5 Latest Stories Loaded!" : "Check Wi-Fi Connection", 1300);
-      renderCurrentScreen(true);
+      requestFetch(FetchKind::News, newsTopicIdx, true);
       return;
     }
     if (y >= 36 && y <= 66) {
-      int tIdx = constrain((x - 12) / 92, 0, NUM_NEWS_TOPICS - 1);
-      newsTopicIdx = tIdx;
-      showToast(String("Fetching ") + TOPIC_NAMES[tIdx] + " News & Photos...", 4000);
-      renderCurrentScreen(true);
-      showToast(fetchLiveNews(tIdx) ? (String(TOPIC_NAMES[tIdx]) + " News Live!") : "Feed Offline", 1300);
-      renderCurrentScreen(true);
+      int topic = constrain((x - 12) / 92, 0, NUM_NEWS_TOPICS - 1);
+      requestFetch(FetchKind::News, topic, true);
       return;
     }
     if (y >= 67 && y <= 188) { selectedArticle = (x < 240) ? 0 : 1; switchScreen(SCR_ARTICLE); return; }
@@ -2021,8 +2210,8 @@ void handleTap(int x, int y) {
       } else showToast("Bluetooth initialization failed", 1800);
       return;
     }
-    if (currentScreen == SCR_MUSIC && x >= 14 && x < 466 && y >= 156 && y < 300) {
-      uint8_t action = 1 + (x - 14) / 152 + (y - 156) / 50 * 3;
+    if (currentScreen == SCR_MUSIC) {
+      uint8_t action = musicActionAt(x, y);
       if (mediaAllowed(action)) xQueueSend(PhoneLink::commands, &action, 0);
     }
     return;
@@ -2039,8 +2228,8 @@ void handleTap(int x, int y) {
   if (currentScreen == APP_MAP) {
     if (inRect(x, y, 6, 2, 100, 42)) { switchScreen(SCR_HOME); return; }
     if (inRect(x, y, 179, 2, 122, 42)) {
-      centerMap(17.3850, 78.4867);
-      showToast("Loading Hyderabad...", 1800);
+      if (mapLoaded) centerMap(17.3850, 78.4867);
+      showToast("Loading map...", 1800);
       renderCurrentScreen(true);
       downloadAreaRealMap(mapSatellite);
       uiDirty = true;
@@ -2063,26 +2252,27 @@ void handleTap(int x, int y) {
   }
 
   if (currentScreen == SCR_CONTROL) {
-    if (inRect(x, y, 14, 42, 452, 50)) {
-      screenBrightness = constrain(20 + ((x - 20) * 80) / 440, 20, 100);
-      applyHardwarePWM();
-      prefs.begin("cuteos", false); prefs.putInt("bri", screenBrightness); prefs.end();
-      renderCurrentScreen(true);
+    if (inRect(x, y, 366, 2, 108, 38)) {
+      editingControls = !editingControls;
+      if (!editingControls) saveControlTileSizes();
+      uiDirty = true;
       return;
     }
-    if (y >= 102) {
-      int idx = ((y < 208) ? 0 : 4) + constrain((x - 14) / 115, 0, 3);
+    int idx = controlTileAt(x, y);
+    if (idx >= 0) {
+      if (editingControls) {
+        selectedControl = idx;
+        uiDirty = true;
+        return;
+      }
       if (idx == 0) {
-        showToast(String("Connecting to ") + WIFI_SSID + "...", 2000); renderCurrentScreen(true);
-        WiFi.begin(WIFI_SSID, WIFI_PASS);
-        unsigned long wt = millis();
-        while (WiFi.status() != WL_CONNECTED && millis() - wt < 5000) delay(150);
-        wifiOnline = (WiFi.status() == WL_CONNECTED);
-        if (wifiOnline) { configTime(SECRET_NTP_OFFSET_SEC, 0, "pool.ntp.org", "time.google.com"); updateTimeFromNtp(); fetchLocalWeather(); }
-        showToast(wifiOnline ? (String(WIFI_SSID) + " Connected!") : String("Wi-Fi Unavailable"), 1500);
+        if (wifiOnline) showToast("Wi-Fi connected", 1500);
+        else {
+          WiFi.begin(WIFI_SSID, WIFI_PASS);
+          showToast("Connecting to Wi-Fi...", 1800);
+        }
       } else if (idx == 1) {
-        showToast("Fetching Everest Photo...", 2200); renderCurrentScreen(true);
-        showToast(downloadRealEverestPhoto() ? "Mount Everest Live!" : "Check Wi-Fi Signal", 1400);
+        requestFetch(FetchKind::Wallpaper, 0, true);
       } else if (idx == 2) {
         switchScreen(APP_MAP); return;
       } else if (idx == 3) {
@@ -2143,7 +2333,7 @@ void handleTap(int x, int y) {
   }
 
   if (inRect(x, y, 366, 2, 108, 38)) {
-    if (currentScreen == APP_WEATHER) { showToast("Refreshing Weather...", 1600); renderCurrentScreen(true); fetchLocalWeather(); return; }
+    if (currentScreen == APP_WEATHER) { requestFetch(FetchKind::Weather, 0, true); return; }
     if (currentScreen == APP_RADAR)   { runRFSpectrumScan(); return; }
     if (currentScreen == APP_SCOPE)   { scopePaused = !scopePaused; uiDirty = true; return; }
     if (currentScreen == APP_RGB)     { rgbBreathing = !rgbBreathing; showToast(rgbBreathing ? "Breathing ON" : "Solid Mode", 1100); uiDirty = true; return; }
@@ -2237,15 +2427,50 @@ void pollTouch() {
           (mapLoaded || WiFi.status() == WL_CONNECTED) && mapCenterX >= 0) {
         draggingMap = true;
         lastMapPreviewX = lastMapPreviewY = 0;
-      } else if (currentScreen == SCR_CONTROL && inRect(rx, ry, 14, 42, 452, 50)) draggingBright = true;
+      } else if (currentScreen == SCR_CONTROL && inRect(rx, ry, 14, 42, 452, 51)) {
+        draggingBright = true;
+        int brightness = constrain(20 + (rx - 32) * 80 / 414, 20, 100);
+        if (brightness != screenBrightness) {
+          screenBrightness = brightness;
+          applyHardwarePWM();
+          renderCurrentScreen(true);
+        }
+      } else if (currentScreen == SCR_CONTROL && editingControls) {
+        int x, y, w, h;
+        controlTileBounds(selectedControl, x, y, w, h);
+        if (abs(rx - (x + w - 10)) <= 13 && abs(ry - (y + h - 11)) <= 13) {
+          resizingControl = selectedControl;
+          resizeStartWidth = w;
+          resizeStartHeight = h;
+        }
+      }
       else { tft.drawCircle(rx, ry, 9, C_CYAN); touchRingDrawn = true; }
     } else {
       smoothX = smoothX * 0.4f + (float)rx * 0.6f;
       smoothY = smoothY * 0.4f + (float)ry * 0.6f;
       int ix = (int)smoothX, iy = (int)smoothY;
       if (draggingBright) {
-        int nb = constrain(20 + ((ix - 20) * 80) / 440, 20, 100);
-        if (abs(nb - screenBrightness) >= 3) { screenBrightness = nb; applyHardwarePWM(); renderCurrentScreen(true); }
+        int nb = constrain(20 + (ix - 32) * 80 / 414, 20, 100);
+        if (abs(nb - screenBrightness) >= 2) { screenBrightness = nb; applyHardwarePWM(); renderCurrentScreen(true); }
+      }
+      if (resizingControl >= 0 && millis() - lastResizeFrame >= 33) {
+        int width = constrain(resizeStartWidth + ix - touchStartX, CONTROL_W_MIN, CONTROL_W_MAX);
+        int height = constrain(resizeStartHeight + iy - touchStartY, CONTROL_H_MIN, CONTROL_H_MAX);
+        auto& size = controlTileSizes[resizingControl];
+        if (width != size[0] || height != size[1]) {
+          lastResizeFrame = millis();
+          int x, y, oldWidth, oldHeight;
+          controlTileBounds(resizingControl, x, y, oldWidth, oldHeight);
+          int dirtyWidth = max(width, oldWidth), dirtyHeight = max(height, oldHeight);
+          size[0] = width;
+          size[1] = height;
+          controlSizeChanged = true;
+          canvas.setClipRect(x, y, dirtyWidth, dirtyHeight);
+          bgSprite.pushSprite(&canvas, 0, 0);
+          canvas.clearClipRect();
+          drawControlTile(resizingControl);
+          pushPartial(x, y, dirtyWidth, dirtyHeight);
+        }
       }
       touchLastX = ix; touchLastY = iy;
       if (draggingMap && millis() - lastMapPreview >= 65) {
@@ -2257,6 +2482,18 @@ void pollTouch() {
     }
   } else if (touchActive && (millis() - lastTouchSeen > 18)) {
     touchActive = false;
+    if (resizingControl >= 0) {
+      auto& size = controlTileSizes[resizingControl];
+      int width = constrain(resizeStartWidth + touchLastX - touchStartX, CONTROL_W_MIN, CONTROL_W_MAX);
+      int height = constrain(resizeStartHeight + touchLastY - touchStartY, CONTROL_H_MIN, CONTROL_H_MAX);
+      if (width != size[0] || height != size[1]) {
+        size[0] = width; size[1] = height;
+        controlSizeChanged = true;
+        uiDirty = true;
+      }
+      resizingControl = -1;
+      return;
+    }
     if (draggingMap) {
       draggingMap = false;
       int dx = touchLastX - touchStartX, dy = touchLastY - touchStartY;
@@ -2298,14 +2535,19 @@ void setup() {
   screenBrightness = constrain(prefs.getInt("bri", 100), 20, 100);
   homeSlot[0]      = prefs.getInt("w0", W_WEATHER);
   homeSlot[1]      = prefs.getInt("w1", W_MINIMAP);
+  if (prefs.getBytesLength("tiles") == sizeof(controlTileSizes)) {
+    prefs.getBytes("tiles", controlTileSizes, sizeof(controlTileSizes));
+    for (auto& size : controlTileSizes) {
+      size[0] = constrain((int)size[0], CONTROL_W_MIN, CONTROL_W_MAX);
+      size[1] = constrain((int)size[1], CONTROL_H_MIN, CONTROL_H_MAX);
+    }
+  }
   resumePhoneLink  = prefs.getBool("phone", false);
   uint16_t savedCal[8];
   bool hasCal      = (prefs.getBytesLength("cal") == sizeof(savedCal));
   if (hasCal) prefs.getBytes("cal", savedCal, sizeof(savedCal));
   prefs.end();
   applyHardwarePWM();
-
-  drawBootSplash("Initializing OPI PSRAM...", 12);
 
   bgSprite.setPsram(true);    bgSprite.setColorDepth(16);
   frostSprite.setPsram(true); frostSprite.setColorDepth(16);
@@ -2336,51 +2578,30 @@ void setup() {
   canvas.drawPixel(0, 0, TFT_RED);
   spriteIsSwapped = (((uint16_t*)canvas.getBuffer())[0] == 0x00F8);
 
-  updateBootProgress("Preparing Alpine Graphics...", 25);
-  buildPhotorealisticEverestFallback();
+  buildBootWallpaper();
+  if (HOME_LAT == 0.0 && HOME_LON == 0.0) centerMap(17.3850, 78.4867);
+  else centerMap(HOME_LAT, HOME_LON);
   buildOfflineAreaMap();
   initOfflineNewsPlaceholders();
-
   if (hasCal) tft.setTouchCalibrate(savedCal);
-  else { runAndSaveTouchCalibration(); drawBootSplash("Touch Saved! Connecting Wi-Fi...", 38); }
+  else runAndSaveTouchCalibration();
 
-  updateBootProgress((String("Connecting to ") + WIFI_SSID + " Wi-Fi...").c_str(), 45);
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-  unsigned long wt = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - wt < 8000) delay(150);
-
-  if (WiFi.status() == WL_CONNECTED) {
-    wifiOnline = true;
-    updateBootProgress("Syncing Time & Weather...", 58);
-    configTime(SECRET_NTP_OFFSET_SEC, 0, "pool.ntp.org", "time.google.com");
-    delay(350);
-    updateTimeFromNtp();
-    fetchLocalWeather();
-
-    updateBootProgress("Loading Real Mount Everest Photo...", 70);
-    downloadRealEverestPhoto();
-
-    updateBootProgress((String("Loading ") + AREA_NAME + " Map...").c_str(), 82);
-    downloadAreaRealMap(false);
-
-    updateBootProgress("Downloading 5 Live News & Images...", 94);
-    fetchLiveNews(0);
-
-    pushNotif("Wi-Fi", String(WIFI_SSID) + " Connected", "Everest, Map, Weather & 5 News Live", C_GREEN);
-  } else {
-    pushNotif("Wi-Fi", "Offline Mode", String("Swipe Down -> Wi-Fi to reconnect ") + WIFI_SSID, C_ORANGE);
-  }
-
-  updateBootProgress("Welcome to cuteOS", 100);
-  delay(220);
-  pushNotif("cuteOS", "Swipe Left -> Right", "Open 5 Live News Tiles with Photos", C_ROSE);
   renderCurrentScreen(true);
-  if (resumePhoneLink) PhoneLink::start();
+  Serial.printf("cuteOS: Home drawn at %lu ms after boot\n", (unsigned long)millis());
 }
 
 void loop() {
+  static bool servicesStarted = false;
+  if (!servicesStarted) {
+    servicesStarted = true;
+    startInternet();
+    if (resumePhoneLink) PhoneLink::start();
+    Serial.printf("cuteOS: Touch loop ready at %lu ms after boot\n", (unsigned long)millis());
+  }
   consumePhoneFrames();
+  if (!touchActive) consumeFetchResults();
+  pollInternet();
+  pollWifiScan();
   if (passkeyPanelVisible && (int32_t)(PhoneLink::showKeyUntil - millis()) <= 0) {
     passkeyPanelVisible = false;
     if (currentScreen == SCR_PHONE) uiDirty = true;
@@ -2430,7 +2651,6 @@ void loop() {
       drawHomeHeroCard();
       pushPartial(12, 42, 232, 184);
     }
-    if (millis() - lastWeatherFetch > 900000UL) fetchLocalWeather();
   }
 
   static time_t lastPanelTime;
